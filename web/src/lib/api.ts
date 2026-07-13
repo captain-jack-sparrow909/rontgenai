@@ -210,3 +210,644 @@ export function getBlueprintReview(token: string, id: string) {
   );
 }
 
+// ── Pulse ──────────────────────────────────────────
+
+export type PulseColumnProfile = {
+  name: string;
+  type: string;
+  nullCount: number;
+  uniqueApprox: number;
+  sampleValues: string[];
+  min?: number | null;
+  max?: number | null;
+  mean?: number | null;
+};
+
+export type PulseChartSpec = {
+  type: "bar" | "line" | "area" | "pie";
+  title: string;
+  xKey: string;
+  yKey: string;
+  data: Record<string, string | number>[];
+};
+
+export type PulseTableSpec = {
+  columns: string[];
+  rows: (string | number | null)[][];
+};
+
+export type PulseChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  sql?: string | null;
+  chart?: PulseChartSpec | null;
+  table?: PulseTableSpec | null;
+  createdAt: string;
+};
+
+export type PulseBootstrap = {
+  summary: string;
+  key_insights: string[];
+  suggested_questions: string[];
+  chart?: PulseChartSpec | null;
+};
+
+export type PulseSessionListItem = {
+  id: string;
+  status: string;
+  title: string;
+  filename: string | null;
+  rowCount: number | null;
+  columnCount: number | null;
+  summary: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PulseSessionDetail = {
+  id: string;
+  status: string;
+  title: string;
+  filename?: string;
+  profile: {
+    rowCount: number;
+    columnCount: number;
+    columns: PulseColumnProfile[];
+    sampleRows: Record<string, unknown>[];
+    filename: string;
+  } | null;
+  bootstrap: PulseBootstrap | null;
+  messages: PulseChatMessage[];
+  meta: unknown;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function createPulseSession(
+  token: string,
+  body: {
+    title?: string;
+    filename: string;
+    fileBase64: string;
+    contentType?: string;
+  },
+) {
+  return apiFetch<{
+    ok: boolean;
+    session: {
+      id: string;
+      status: string;
+      title: string;
+      filename: string;
+      rowCount: number;
+      columnCount: number;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/pulse/sessions", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listPulseSessions(token: string) {
+  return apiFetch<{ sessions: PulseSessionListItem[] }>("/v1/pulse/sessions", {
+    token,
+  });
+}
+
+export function getPulseSession(token: string, id: string) {
+  return apiFetch<{ session: PulseSessionDetail }>(
+    `/v1/pulse/sessions/${id}`,
+    { token },
+  );
+}
+
+export function chatPulseSession(token: string, id: string, message: string) {
+  return apiFetch<{
+    ok: boolean;
+    message: PulseChatMessage;
+    usage: { used: number; limit: number; remaining: number | null };
+  }>(`/v1/pulse/sessions/${id}/chat`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ message }),
+  });
+}
+
+// ── Atlas ──────────────────────────────────────────
+
+export type AtlasReport = {
+  summary: string;
+  architecture_overview: string;
+  mermaid: string;
+  modules: { name: string; path: string; role: string }[];
+  tech_stack: string[];
+  how_to_run: string[];
+  how_to_contribute: string[];
+  entrypoints: string[];
+  risks: string[];
+  onboarding_checklist: string[];
+};
+
+export type AtlasChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+};
+
+export type AtlasMapListItem = {
+  id: string;
+  status: string;
+  fullName: string;
+  url: string | null;
+  stars: number | null;
+  language: string | null;
+  summary: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AtlasMapDetail = {
+  id: string;
+  status: string;
+  fullName?: string;
+  url?: string;
+  snapshot: {
+    ref: { owner: string; repo: string; fullName: string; url: string };
+    meta: {
+      description: string | null;
+      defaultBranch: string;
+      language: string | null;
+      stars: number;
+      forks: number;
+      openIssues: number;
+      license: string | null;
+      topics: string[];
+    };
+    tree: {
+      totalFiles: number;
+      totalDirs: number;
+      topLevel: string[];
+      extensions: Record<string, number>;
+      directories: string[];
+      importantPaths: string[];
+    };
+    readmePreview: string | null;
+    keyFilePaths: string[];
+  } | null;
+  report: AtlasReport | null;
+  messages: AtlasChatMessage[];
+  meta: unknown;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function createAtlasMap(token: string, repoUrl: string) {
+  return apiFetch<{
+    ok: boolean;
+    map: {
+      id: string;
+      status: string;
+      fullName: string;
+      url: string;
+      stars: number;
+      language: string | null;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/atlas/maps", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ repoUrl }),
+  });
+}
+
+export function listAtlasMaps(token: string) {
+  return apiFetch<{ maps: AtlasMapListItem[] }>("/v1/atlas/maps", { token });
+}
+
+export function getAtlasMap(token: string, id: string) {
+  return apiFetch<{ map: AtlasMapDetail }>(`/v1/atlas/maps/${id}`, { token });
+}
+
+export function chatAtlasMap(token: string, id: string, message: string) {
+  return apiFetch<{
+    ok: boolean;
+    message: AtlasChatMessage;
+    usage: { used: number; limit: number; remaining: number | null };
+  }>(`/v1/atlas/maps/${id}/chat`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ message }),
+  });
+}
+
+// ── Sentinel ───────────────────────────────────────
+
+export type SentinelFinding = {
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  path: string;
+  line: number | null;
+  title: string;
+  body: string;
+  suggestion?: string | null;
+};
+
+export type SentinelReviewPayload = {
+  summary: string;
+  verdict: "approve" | "comment" | "request_changes";
+  findings: SentinelFinding[];
+  positives: string[];
+};
+
+export type SentinelReviewListItem = {
+  id: string;
+  status: string;
+  prUrl: string | null;
+  title: string | null;
+  author: string | null;
+  verdict: string | null;
+  findingCount: number | null;
+  githubReviewUrl: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SentinelReviewDetail = {
+  id: string;
+  status: string;
+  prUrl?: string;
+  title?: string;
+  author?: string;
+  postToGithub?: boolean;
+  autoApprove?: boolean;
+  files: {
+    path: string;
+    status: string;
+    additions: number;
+    deletions: number;
+  }[];
+  result: {
+    review?: SentinelReviewPayload;
+    github?: { reviewId?: number; htmlUrl?: string };
+    postError?: string | null;
+    meta?: {
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      filesReviewed?: number;
+      completedAt?: string;
+    };
+  } | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getSentinelStatus(token: string) {
+  return apiFetch<{
+    githubAppConfigured: boolean;
+    githubTokenConfigured: boolean;
+    appSlug: string | null;
+    installUrl: string | null;
+    planAllows: boolean;
+    plan: string;
+  }>("/v1/sentinel/status", { token });
+}
+
+export function createSentinelReview(
+  token: string,
+  body: {
+    prUrl: string;
+    postToGithub?: boolean;
+    autoApprove?: boolean;
+    installationId?: number;
+  },
+) {
+  return apiFetch<{
+    ok: boolean;
+    review: {
+      id: string;
+      status: string;
+      prUrl: string;
+      title: string;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/sentinel/reviews", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listSentinelReviews(token: string) {
+  return apiFetch<{ reviews: SentinelReviewListItem[] }>(
+    "/v1/sentinel/reviews",
+    { token },
+  );
+}
+
+export function getSentinelReview(token: string, id: string) {
+  return apiFetch<{ review: SentinelReviewDetail }>(
+    `/v1/sentinel/reviews/${id}`,
+    { token },
+  );
+}
+
+export function claimSentinelInstallation(
+  token: string,
+  body: {
+    installationId: number;
+    accountLogin?: string;
+    accountType?: string;
+  },
+) {
+  return apiFetch<{ ok: boolean; installation: unknown }>(
+    "/v1/sentinel/installations",
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function listSentinelInstallations(token: string) {
+  return apiFetch<{
+    installations: {
+      id: string;
+      installation_id: number;
+      account_login: string | null;
+      metadata: {
+        autoApprove?: boolean;
+        enabled?: boolean;
+      } | null;
+      created_at: string;
+    }[];
+  }>("/v1/sentinel/installations", { token });
+}
+
+export function updateSentinelSettings(
+  token: string,
+  body: {
+    installationId: number;
+    autoApprove?: boolean;
+    enabled?: boolean;
+  },
+) {
+  return apiFetch<{ ok: boolean }>(
+    "/v1/sentinel/installations/settings",
+    {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+
+// ── Forge ──────────────────────────────────────────
+
+export type ForgePlan = {
+  summary: string;
+  approach: string;
+  files_to_touch: {
+    path: string;
+    action: "create" | "modify" | "delete";
+    rationale: string;
+  }[];
+  steps: string[];
+  test_plan: string[];
+  risks: string[];
+  out_of_scope: string[];
+  complexity: "low" | "medium" | "high";
+};
+
+export type ForgeJobListItem = {
+  id: string;
+  status: string;
+  stage: string;
+  issueUrl: string | null;
+  title: string | null;
+  planSummary: string | null;
+  complexity: string | null;
+  prUrl: string | null;
+  prNumber: number | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ForgeJobDetail = {
+  id: string;
+  status: string;
+  stage: string;
+  issueUrl?: string;
+  issue: {
+    ref: { owner: string; repo: string; number: number; url: string };
+    title: string;
+    body: string | null;
+    author: string | null;
+    labels: string[];
+    state: string;
+    defaultBranch: string;
+    topLevel: string[];
+    languages: Record<string, number> | null;
+    contextFilePaths: string[];
+    comments: { author: string | null; body: string }[];
+  } | null;
+  result: {
+    stage?: string;
+    plan?: ForgePlan;
+    changes?: {
+      path: string;
+      action: string;
+      note?: string;
+      contentPreview?: string | null;
+      bytes?: number;
+    }[];
+    pr?: { number: number; htmlUrl: string; branch: string };
+    meta?: Record<string, unknown>;
+  } | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getForgeStatus(token: string) {
+  return apiFetch<{
+    githubAppConfigured: boolean;
+    githubTokenConfigured: boolean;
+    planAllows: boolean;
+    plan: string;
+  }>("/v1/forge/status", { token });
+}
+
+export function createForgeJob(
+  token: string,
+  body: { issueUrl: string; installationId?: number },
+) {
+  return apiFetch<{
+    ok: boolean;
+    job: {
+      id: string;
+      status: string;
+      stage: string;
+      issueUrl: string;
+      title: string;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/forge/jobs", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listForgeJobs(token: string) {
+  return apiFetch<{ jobs: ForgeJobListItem[] }>("/v1/forge/jobs", { token });
+}
+
+export function getForgeJob(token: string, id: string) {
+  return apiFetch<{ job: ForgeJobDetail }>(`/v1/forge/jobs/${id}`, { token });
+}
+
+export function approveForgeJob(token: string, id: string) {
+  return apiFetch<{ ok: boolean; message: string }>(
+    `/v1/forge/jobs/${id}/approve`,
+    { method: "POST", token, body: "{}" },
+  );
+}
+
+export function rejectForgeJob(token: string, id: string) {
+  return apiFetch<{ ok: boolean; stage: string }>(
+    `/v1/forge/jobs/${id}/reject`,
+    { method: "POST", token, body: "{}" },
+  );
+}
+
+// ── Radar ──────────────────────────────────────────
+
+export type RadarCause = {
+  rank: number;
+  title: string;
+  confidence: number;
+  evidence: string[];
+  category: string;
+  remediation: string[];
+};
+
+export type RadarReport = {
+  incident_summary: string;
+  severity: "critical" | "high" | "medium" | "low";
+  timeline: { time: string | null; event: string }[];
+  likely_causes: RadarCause[];
+  blast_radius: string;
+  immediate_actions: string[];
+  investigation_checklist: string[];
+  postmortem_draft: {
+    impact: string;
+    detection: string;
+    root_cause: string;
+    resolution: string;
+    lessons: string[];
+  };
+  related_signals: string[];
+};
+
+export type RadarInvestigationListItem = {
+  id: string;
+  status: string;
+  title: string;
+  severity: string | null;
+  summary: string | null;
+  errorCount: number | null;
+  totalLines: number | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RadarInvestigationDetail = {
+  id: string;
+  status: string;
+  title?: string;
+  description?: string | null;
+  metricsNotes?: string | null;
+  logExcerpt?: string;
+  signals: {
+    totalLines?: number;
+    errorCount?: number;
+    warnCount?: number;
+    levels?: Record<string, number>;
+    topServices?: { name: string; count: number }[];
+    topErrorSignatures?: { signature: string; count: number }[];
+    timeRange?: { first: string | null; last: string | null };
+  } | null;
+  result: {
+    report?: RadarReport;
+    meta?: {
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      completedAt?: string;
+      signals?: { totalLines?: number; errorCount?: number; warnCount?: number };
+    };
+  } | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function createRadarInvestigation(
+  token: string,
+  body: {
+    title?: string;
+    description?: string;
+    metricsNotes?: string;
+    logs?: string;
+    logBase64?: string;
+    filename?: string;
+  },
+) {
+  return apiFetch<{
+    ok: boolean;
+    investigation: {
+      id: string;
+      status: string;
+      title: string;
+      errorCount: number;
+      warnCount: number;
+      totalLines: number;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/radar/investigations", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listRadarInvestigations(token: string) {
+  return apiFetch<{ investigations: RadarInvestigationListItem[] }>(
+    "/v1/radar/investigations",
+    { token },
+  );
+}
+
+export function getRadarInvestigation(token: string, id: string) {
+  return apiFetch<{ investigation: RadarInvestigationDetail }>(
+    `/v1/radar/investigations/${id}`,
+    { token },
+  );
+}

@@ -40,6 +40,15 @@ const envSchema = z.object({
   R2_BUCKET: z.string().optional(),
   R2_S3_API_ENDPOINT: z.string().optional(),
   R2_PUBLIC_BASE_URL: z.string().optional(),
+
+  GITHUB_TOKEN: z.string().optional(),
+
+  /** GitHub App for Sentinel (optional — PAT works for manual PR review) */
+  GITHUB_APP_ID: z.string().optional(),
+  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
+  GITHUB_APP_SLUG: z.string().optional(),
+  GITHUB_APP_CLIENT_ID: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -47,6 +56,12 @@ export type Env = z.infer<typeof envSchema>;
 function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
   return raw.replace(/\/rest\/v1\/?$/i, "").replace(/\/$/, "");
+}
+
+/** Allow PEM keys stored with escaped newlines in env */
+function normalizePem(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  return raw.replace(/\\n/g, "\n");
 }
 
 function loadEnv(): Env {
@@ -83,6 +98,12 @@ function loadEnv(): Env {
     R2_BUCKET: process.env.R2_BUCKET,
     R2_S3_API_ENDPOINT: process.env.R2_S3_API_ENDPOINT,
     R2_PUBLIC_BASE_URL: process.env.R2_PUBLIC_BASE_URL,
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? undefined,
+    GITHUB_APP_ID: process.env.GITHUB_APP_ID,
+    GITHUB_APP_PRIVATE_KEY: normalizePem(process.env.GITHUB_APP_PRIVATE_KEY),
+    GITHUB_WEBHOOK_SECRET: process.env.GITHUB_WEBHOOK_SECRET,
+    GITHUB_APP_SLUG: process.env.GITHUB_APP_SLUG,
+    GITHUB_APP_CLIENT_ID: process.env.GITHUB_APP_CLIENT_ID,
   });
 
   if (!parsed.success) {

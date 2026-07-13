@@ -1,3 +1,4 @@
+import { Readable } from "node:stream";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
@@ -10,14 +11,40 @@ import { usageRoutes } from "./routes/usage.js";
 import { billingRoutes } from "./routes/billing.js";
 import { jobRoutes } from "./routes/jobs.js";
 import { blueprintRoutes } from "./routes/blueprint.js";
+import { pulseRoutes } from "./routes/pulse.js";
+import { atlasRoutes } from "./routes/atlas.js";
+import { sentinelRoutes } from "./routes/sentinel.js";
+import { forgeRoutes } from "./routes/forge.js";
+import { radarRoutes } from "./routes/radar.js";
 import { paddleWebhookRoutes } from "./routes/webhooks/paddle.js";
 import { clerkWebhookRoutes } from "./routes/webhooks/clerk.js";
+import { githubWebhookRoutes } from "./routes/webhooks/github.js";
+
+declare module "fastify" {
+  interface FastifyRequest {
+    rawBody?: string;
+  }
+}
 
 async function main() {
   const app = Fastify({
     logger: true,
     // Base64 diagrams can be large
     bodyLimit: 12 * 1024 * 1024,
+  });
+
+  // Preserve raw body for GitHub webhook signature verification
+  app.addHook("preParsing", async (request, _reply, payload) => {
+    if (!request.url.startsWith("/v1/webhooks/github")) {
+      return payload;
+    }
+    const chunks: Buffer[] = [];
+    for await (const chunk of payload) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    }
+    const raw = Buffer.concat(chunks);
+    request.rawBody = raw.toString("utf8");
+    return Readable.from(raw);
   });
 
   await app.register(helmet, {
@@ -48,8 +75,14 @@ async function main() {
   await app.register(billingRoutes);
   await app.register(jobRoutes);
   await app.register(blueprintRoutes);
+  await app.register(pulseRoutes);
+  await app.register(atlasRoutes);
+  await app.register(sentinelRoutes);
+  await app.register(forgeRoutes);
+  await app.register(radarRoutes);
   await app.register(paddleWebhookRoutes);
   await app.register(clerkWebhookRoutes);
+  await app.register(githubWebhookRoutes);
 
   app.setErrorHandler((err, _req, reply) => {
     const error = err as Error & { statusCode?: number };

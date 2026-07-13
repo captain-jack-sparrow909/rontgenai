@@ -81,3 +81,8 @@ export function blueprintObjectKey(
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
   return `blueprint/${profileId}/${Date.now()}-${randomUUID().slice(0, 8)}-${safe}`;
 }
+
+export function pulseObjectKey(profileId: string, filename: string): string {
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+  return `pulse/${profileId}/${Date.now()}-${randomUUID().slice(0, 8)}-${safe}`;
+}

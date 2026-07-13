@@ -4,15 +4,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useMe } from "@/hooks/use-me";
 import { createCheckout } from "@/lib/api";
 import { openPaddleCheckout } from "@/lib/paddle";
@@ -67,109 +61,142 @@ function BillingInner() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-white">Billing</h1>
-        <p className="mt-1 text-sm text-foreground/55">
-          Suite subscription via Paddle. Free/Pro are personal; Team uses Clerk
-          Organizations for shared seats.
+    <div className="relative mx-auto max-w-3xl">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/3 top-0 h-56 w-56 rounded-full bg-cyan-500/10 blur-[90px]" />
+      </div>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-white">
+          Billing
+        </h1>
+        <p className="mt-2 text-sm text-foreground/50">
+          One suite subscription via Paddle. Free/Pro are personal; Team unlocks
+          shared seats.
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-foreground/50">Billing interval</span>
-        <div className="inline-flex rounded-lg border border-white/10 p-0.5">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <span className="text-xs text-foreground/45">Interval</span>
+        <div className="inline-flex rounded-xl border border-white/10 bg-black/30 p-1">
           {(["month", "year"] as const).map((i) => (
             <button
               key={i}
               type="button"
               onClick={() => setInterval(i)}
               className={cn(
-                "rounded-md px-3 py-1 text-xs font-medium transition",
+                "rounded-lg px-4 py-1.5 text-xs font-medium transition",
                 interval === i
-                  ? "bg-white/10 text-white"
-                  : "text-foreground/50 hover:text-white",
+                  ? "bg-white/10 text-white shadow"
+                  : "text-foreground/45 hover:text-white",
               )}
             >
               {i === "month" ? "Monthly" : "Yearly (−2 mo)"}
             </button>
           ))}
         </div>
+        <Badge className="ml-auto capitalize">
+          Current: {isLoading ? "…" : currentPlan}
+        </Badge>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Current plan</CardTitle>
-            <Badge className="capitalize">
-              {isLoading ? "…" : currentPlan}
-            </Badge>
-          </div>
-          <CardDescription>
-            Status: {me?.subscription.status ?? "—"} · Provider:{" "}
-            {me?.subscription.provider ?? "paddle"}
-            {me?.subscription.currentPeriodEnd
-              ? ` · Renews ${new Date(me.subscription.currentPeriodEnd).toLocaleDateString()}`
-              : null}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {plans.map((plan) => {
-            const price =
-              interval === "year" && plan.priceYearly > 0
-                ? Math.round(plan.priceYearly / 12)
-                : plan.priceMonthly;
-            return (
-              <div
-                key={plan.id}
-                className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
+      <div className="space-y-3">
+        {plans.map((plan) => {
+          const price =
+            interval === "year" && plan.priceYearly > 0
+              ? Math.round(plan.priceYearly / 12)
+              : plan.priceMonthly;
+          const isCurrent = currentPlan === plan.id;
+          return (
+            <div
+              key={plan.id}
+              className={cn(
+                "overflow-hidden rounded-2xl border bg-gradient-to-b from-white/[0.05] to-transparent p-5 transition",
+                plan.highlighted
+                  ? "border-cyan-400/30 shadow-lg shadow-cyan-500/5"
+                  : "border-white/8",
+                isCurrent && "ring-1 ring-cyan-400/20",
+              )}
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-medium text-white">
-                    {plan.name}{" "}
-                    <span className="text-foreground/50">
-                      · ${price}/mo
-                      {interval === "year" && plan.priceYearly > 0
-                        ? ` ($${plan.priceYearly}/yr)`
-                        : ""}
-                    </span>
-                  </p>
-                  <p className="text-sm text-foreground/50">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-white">
+                      {plan.name}
+                    </h2>
+                    {plan.highlighted ? <Badge>Popular</Badge> : null}
+                    {isCurrent ? (
+                      <Badge variant="success">Current</Badge>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-sm text-foreground/50">
                     {plan.description}
                   </p>
+                  <p className="mt-3 text-2xl font-semibold tabular-nums text-white">
+                    ${price}
+                    <span className="text-sm font-normal text-foreground/40">
+                      /mo
+                    </span>
+                    {interval === "year" && plan.priceYearly > 0 ? (
+                      <span className="ml-2 text-xs font-normal text-foreground/35">
+                        ${plan.priceYearly}/yr
+                      </span>
+                    ) : null}
+                  </p>
+                  <ul className="mt-3 space-y-1">
+                    {plan.features.slice(0, 4).map((f) => (
+                      <li
+                        key={f}
+                        className="flex gap-2 text-xs text-foreground/55"
+                      >
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-400" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                {plan.id === "free" ? (
-                  <Button variant="secondary" disabled>
-                    {currentPlan === "free" ? "Current" : "Included"}
-                  </Button>
-                ) : (
-                  <Button
-                    variant={plan.highlighted ? "default" : "secondary"}
-                    disabled={busy !== null || currentPlan === plan.id}
-                    onClick={() => {
-                      if (plan.id === "pro" || plan.id === "team") {
-                        void onUpgrade(plan.id);
-                      }
-                    }}
-                  >
-                    {currentPlan === plan.id
-                      ? "Current"
-                      : busy === plan.id
-                        ? "Opening…"
-                        : plan.cta}
-                  </Button>
-                )}
+                <div className="shrink-0">
+                  {plan.id === "free" ? (
+                    <Button variant="secondary" disabled>
+                      {isCurrent ? "Current plan" : "Included"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant={plan.highlighted ? "default" : "secondary"}
+                      disabled={busy !== null || isCurrent}
+                      onClick={() => {
+                        if (plan.id === "pro" || plan.id === "team") {
+                          void onUpgrade(plan.id);
+                        }
+                      }}
+                    >
+                      {isCurrent
+                        ? "Current"
+                        : busy === plan.id
+                          ? "Opening…"
+                          : plan.cta}
+                    </Button>
+                  )}
+                </div>
               </div>
-            );
-          })}
-          {message ? (
-            <p className="text-sm text-cyan-300/90">{message}</p>
-          ) : null}
-          <Button asChild variant="outline">
-            <Link href="/#pricing">View full pricing</Link>
-          </Button>
-        </CardContent>
-      </Card>
+            </div>
+          );
+        })}
+      </div>
+
+      {message ? (
+        <p className="mt-4 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100/90">
+          {message}
+        </p>
+      ) : null}
+
+      <p className="mt-6 text-center text-xs text-foreground/35">
+        <Link href="/#pricing" className="text-cyan-400/80 hover:underline">
+          Full pricing details
+        </Link>
+        {" · "}
+        Taxes handled by Paddle (Merchant of Record)
+      </p>
     </div>
   );
 }
