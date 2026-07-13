@@ -10,6 +10,8 @@ import { usageRoutes } from "./routes/usage.js";
 import { billingRoutes } from "./routes/billing.js";
 import { jobRoutes } from "./routes/jobs.js";
 import { blueprintRoutes } from "./routes/blueprint.js";
+import { pulseRoutes } from "./routes/pulse.js";
+import { atlasRoutes } from "./routes/atlas.js";
 import { paddleWebhookRoutes } from "./routes/webhooks/paddle.js";
 import { clerkWebhookRoutes } from "./routes/webhooks/clerk.js";
 
@@ -48,6 +50,8 @@ async function main() {
   await app.register(billingRoutes);
   await app.register(jobRoutes);
   await app.register(blueprintRoutes);
+  await app.register(pulseRoutes);
+  await app.register(atlasRoutes);
   await app.register(paddleWebhookRoutes);
   await app.register(clerkWebhookRoutes);
 

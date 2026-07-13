@@ -40,6 +40,9 @@ const envSchema = z.object({
   R2_BUCKET: z.string().optional(),
   R2_S3_API_ENDPOINT: z.string().optional(),
   R2_PUBLIC_BASE_URL: z.string().optional(),
+
+  /** Optional — higher rate limits for Atlas public repo fetch */
+  GITHUB_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -83,6 +86,8 @@ function loadEnv(): Env {
     R2_BUCKET: process.env.R2_BUCKET,
     R2_S3_API_ENDPOINT: process.env.R2_S3_API_ENDPOINT,
     R2_PUBLIC_BASE_URL: process.env.R2_PUBLIC_BASE_URL,
+    GITHUB_TOKEN:
+      process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? undefined,
   });
 
   if (!parsed.success) {

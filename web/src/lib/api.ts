@@ -210,3 +210,241 @@ export function getBlueprintReview(token: string, id: string) {
   );
 }
 
+// ── Pulse ──────────────────────────────────────────
+
+export type PulseColumnProfile = {
+  name: string;
+  type: string;
+  nullCount: number;
+  uniqueApprox: number;
+  sampleValues: string[];
+  min?: number | null;
+  max?: number | null;
+  mean?: number | null;
+};
+
+export type PulseChartSpec = {
+  type: "bar" | "line" | "area" | "pie";
+  title: string;
+  xKey: string;
+  yKey: string;
+  data: Record<string, string | number>[];
+};
+
+export type PulseTableSpec = {
+  columns: string[];
+  rows: (string | number | null)[][];
+};
+
+export type PulseChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  sql?: string | null;
+  chart?: PulseChartSpec | null;
+  table?: PulseTableSpec | null;
+  createdAt: string;
+};
+
+export type PulseBootstrap = {
+  summary: string;
+  key_insights: string[];
+  suggested_questions: string[];
+  chart?: PulseChartSpec | null;
+};
+
+export type PulseSessionListItem = {
+  id: string;
+  status: string;
+  title: string;
+  filename: string | null;
+  rowCount: number | null;
+  columnCount: number | null;
+  summary: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PulseSessionDetail = {
+  id: string;
+  status: string;
+  title: string;
+  filename?: string;
+  profile: {
+    rowCount: number;
+    columnCount: number;
+    columns: PulseColumnProfile[];
+    sampleRows: Record<string, unknown>[];
+    filename: string;
+  } | null;
+  bootstrap: PulseBootstrap | null;
+  messages: PulseChatMessage[];
+  meta: unknown;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function createPulseSession(
+  token: string,
+  body: {
+    title?: string;
+    filename: string;
+    fileBase64: string;
+    contentType?: string;
+  },
+) {
+  return apiFetch<{
+    ok: boolean;
+    session: {
+      id: string;
+      status: string;
+      title: string;
+      filename: string;
+      rowCount: number;
+      columnCount: number;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/pulse/sessions", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listPulseSessions(token: string) {
+  return apiFetch<{ sessions: PulseSessionListItem[] }>("/v1/pulse/sessions", {
+    token,
+  });
+}
+
+export function getPulseSession(token: string, id: string) {
+  return apiFetch<{ session: PulseSessionDetail }>(
+    `/v1/pulse/sessions/${id}`,
+    { token },
+  );
+}
+
+export function chatPulseSession(token: string, id: string, message: string) {
+  return apiFetch<{
+    ok: boolean;
+    message: PulseChatMessage;
+    usage: { used: number; limit: number; remaining: number | null };
+  }>(`/v1/pulse/sessions/${id}/chat`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ message }),
+  });
+}
+
+// ── Atlas ──────────────────────────────────────────
+
+export type AtlasReport = {
+  summary: string;
+  architecture_overview: string;
+  mermaid: string;
+  modules: { name: string; path: string; role: string }[];
+  tech_stack: string[];
+  how_to_run: string[];
+  how_to_contribute: string[];
+  entrypoints: string[];
+  risks: string[];
+  onboarding_checklist: string[];
+};
+
+export type AtlasChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+};
+
+export type AtlasMapListItem = {
+  id: string;
+  status: string;
+  fullName: string;
+  url: string | null;
+  stars: number | null;
+  language: string | null;
+  summary: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AtlasMapDetail = {
+  id: string;
+  status: string;
+  fullName?: string;
+  url?: string;
+  snapshot: {
+    ref: { owner: string; repo: string; fullName: string; url: string };
+    meta: {
+      description: string | null;
+      defaultBranch: string;
+      language: string | null;
+      stars: number;
+      forks: number;
+      openIssues: number;
+      license: string | null;
+      topics: string[];
+    };
+    tree: {
+      totalFiles: number;
+      totalDirs: number;
+      topLevel: string[];
+      extensions: Record<string, number>;
+      directories: string[];
+      importantPaths: string[];
+    };
+    readmePreview: string | null;
+    keyFilePaths: string[];
+  } | null;
+  report: AtlasReport | null;
+  messages: AtlasChatMessage[];
+  meta: unknown;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function createAtlasMap(token: string, repoUrl: string) {
+  return apiFetch<{
+    ok: boolean;
+    map: {
+      id: string;
+      status: string;
+      fullName: string;
+      url: string;
+      stars: number;
+      language: string | null;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/atlas/maps", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ repoUrl }),
+  });
+}
+
+export function listAtlasMaps(token: string) {
+  return apiFetch<{ maps: AtlasMapListItem[] }>("/v1/atlas/maps", { token });
+}
+
+export function getAtlasMap(token: string, id: string) {
+  return apiFetch<{ map: AtlasMapDetail }>(`/v1/atlas/maps/${id}`, { token });
+}
+
+export function chatAtlasMap(token: string, id: string, message: string) {
+  return apiFetch<{
+    ok: boolean;
+    message: AtlasChatMessage;
+    usage: { used: number; limit: number; remaining: number | null };
+  }>(`/v1/atlas/maps/${id}/chat`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ message }),
+  });
+}
+

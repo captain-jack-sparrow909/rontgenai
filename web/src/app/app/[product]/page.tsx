@@ -2,9 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { ProductPlaceholder } from "@/components/app/product-placeholder";
 import { availableProducts, getProduct } from "@/lib/products";
 
+const DEDICATED = new Set(["blueprint", "pulse", "atlas"]);
+
 export function generateStaticParams() {
   return availableProducts
-    .filter((p) => p.slug !== "blueprint")
+    .filter((p) => !DEDICATED.has(p.slug))
     .map((p) => ({ product: p.slug }));
 }
 
@@ -15,10 +17,9 @@ export default async function ProductPage({
 }) {
   const { product: slug } = await params;
 
-  // Dedicated Blueprint app lives at /app/blueprint
-  if (slug === "blueprint") {
-    redirect("/app/blueprint");
-  }
+  if (slug === "blueprint") redirect("/app/blueprint");
+  if (slug === "pulse") redirect("/app/pulse");
+  if (slug === "atlas") redirect("/app/atlas");
 
   const product = getProduct(slug);
 
