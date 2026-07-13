@@ -6,6 +6,8 @@
     "dev:web": "npm --prefix web run dev",
     "dev:api": "npm --prefix api-gateway run dev",
     "build:web": "npm --prefix web run build",
+    "build:api": "npm --prefix api-gateway run build",
+    "build": "npm run build:api && npm run build:web",
     "typecheck:api": "npm --prefix api-gateway run typecheck",
     "migrate": "node --env-file=web/.env.local scripts/apply-migrations.mjs"
   }

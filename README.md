@@ -52,7 +52,20 @@ Start with `web` only. Spin backends into their own git repos when Phase 1 begin
 
 See `docs/PHASE-1.md`. **Next: Phase 2 — Blueprint.**
 
+## Deployment
+
+Production targets: **Vercel** (web) + **Render** (api-gateway).
+
+See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for:
+
+- Render service settings + `api.rontgenai.dev`
+- Vercel root directory `web` + `rontgenai.dev`
+- Production env vars and smoke tests
+
+Config: `web/vercel.json`, `render.yaml`, `*.env.production.example`.
+
 ## Quick start (`web`)
+
 
 ```bash
 cd web

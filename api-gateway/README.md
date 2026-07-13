@@ -34,7 +34,18 @@ npm run dev
 # → http://localhost:8000/health
 ```
 
-Web should set `NEXT_PUBLIC_API_URL=http://localhost:8000`.
+Production build:
+
+```bash
+npm run build   # tsc → dist/
+npm start       # node dist/index.js
+```
+
+Web should set `NEXT_PUBLIC_API_URL=http://localhost:8000` locally, or your Render URL in production.
+
+## Deploy (Render)
+
+See [docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md). Root Directory: `api-gateway`. Health: `/health`.
 
 ## Auth
 

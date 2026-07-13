@@ -1,0 +1,77 @@
+# Render Blueprint — deploy api-gateway
+# https://render.com/docs/blueprint-spec
+#
+# From Render Dashboard: New → Blueprint → connect this repo
+# Or create a Web Service manually using the settings below.
+
+services:
+  - type: web
+    name: rontgenai-api
+    runtime: node
+    plan: free
+    rootDir: api-gateway
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Set these in the Render dashboard (do not commit secrets):
+      - key: APP_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        sync: false
+      - key: DEEPSEEK_MODEL
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_S3_API_ENDPOINT
+        sync: false
+      - key: PADDLE_ENV
+        value: sandbox
+      - key: PADDLE_API_KEY
+        sync: false
+      - key: PADDLE_WEBHOOK_SECRET
+        sync: false
+      - key: PADDLE_PRICE_PRO_MONTHLY
+        sync: false
+      - key: PADDLE_PRICE_PRO_YEARLY
+        sync: false
+      - key: PADDLE_PRICE_TEAM_MONTHLY
+        sync: false
+      - key: PADDLE_PRICE_TEAM_YEARLY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_APP_SLUG
+        sync: false
