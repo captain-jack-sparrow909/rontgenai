@@ -14,6 +14,8 @@ import { blueprintRoutes } from "./routes/blueprint.js";
 import { pulseRoutes } from "./routes/pulse.js";
 import { atlasRoutes } from "./routes/atlas.js";
 import { sentinelRoutes } from "./routes/sentinel.js";
+import { forgeRoutes } from "./routes/forge.js";
+import { radarRoutes } from "./routes/radar.js";
 import { paddleWebhookRoutes } from "./routes/webhooks/paddle.js";
 import { clerkWebhookRoutes } from "./routes/webhooks/clerk.js";
 import { githubWebhookRoutes } from "./routes/webhooks/github.js";
@@ -76,6 +78,8 @@ async function main() {
   await app.register(pulseRoutes);
   await app.register(atlasRoutes);
   await app.register(sentinelRoutes);
+  await app.register(forgeRoutes);
+  await app.register(radarRoutes);
   await app.register(paddleWebhookRoutes);
   await app.register(clerkWebhookRoutes);
   await app.register(githubWebhookRoutes);

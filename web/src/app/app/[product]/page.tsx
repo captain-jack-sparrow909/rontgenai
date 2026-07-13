@@ -2,7 +2,14 @@ import { notFound, redirect } from "next/navigation";
 import { ProductPlaceholder } from "@/components/app/product-placeholder";
 import { availableProducts, getProduct } from "@/lib/products";
 
-const DEDICATED = new Set(["blueprint", "pulse", "atlas", "sentinel"]);
+const DEDICATED = new Set([
+  "blueprint",
+  "pulse",
+  "atlas",
+  "sentinel",
+  "forge",
+  "radar",
+]);
 
 export function generateStaticParams() {
   return availableProducts
@@ -21,6 +28,8 @@ export default async function ProductPage({
   if (slug === "pulse") redirect("/app/pulse");
   if (slug === "atlas") redirect("/app/atlas");
   if (slug === "sentinel") redirect("/app/sentinel");
+  if (slug === "forge") redirect("/app/forge");
+  if (slug === "radar") redirect("/app/radar");
 
   const product = getProduct(slug);
 

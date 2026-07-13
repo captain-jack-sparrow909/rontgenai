@@ -613,3 +613,241 @@ export function updateSentinelSettings(
   );
 }
 
+
+// ── Forge ──────────────────────────────────────────
+
+export type ForgePlan = {
+  summary: string;
+  approach: string;
+  files_to_touch: {
+    path: string;
+    action: "create" | "modify" | "delete";
+    rationale: string;
+  }[];
+  steps: string[];
+  test_plan: string[];
+  risks: string[];
+  out_of_scope: string[];
+  complexity: "low" | "medium" | "high";
+};
+
+export type ForgeJobListItem = {
+  id: string;
+  status: string;
+  stage: string;
+  issueUrl: string | null;
+  title: string | null;
+  planSummary: string | null;
+  complexity: string | null;
+  prUrl: string | null;
+  prNumber: number | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ForgeJobDetail = {
+  id: string;
+  status: string;
+  stage: string;
+  issueUrl?: string;
+  issue: {
+    ref: { owner: string; repo: string; number: number; url: string };
+    title: string;
+    body: string | null;
+    author: string | null;
+    labels: string[];
+    state: string;
+    defaultBranch: string;
+    topLevel: string[];
+    languages: Record<string, number> | null;
+    contextFilePaths: string[];
+    comments: { author: string | null; body: string }[];
+  } | null;
+  result: {
+    stage?: string;
+    plan?: ForgePlan;
+    changes?: {
+      path: string;
+      action: string;
+      note?: string;
+      contentPreview?: string | null;
+      bytes?: number;
+    }[];
+    pr?: { number: number; htmlUrl: string; branch: string };
+    meta?: Record<string, unknown>;
+  } | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getForgeStatus(token: string) {
+  return apiFetch<{
+    githubAppConfigured: boolean;
+    githubTokenConfigured: boolean;
+    planAllows: boolean;
+    plan: string;
+  }>("/v1/forge/status", { token });
+}
+
+export function createForgeJob(
+  token: string,
+  body: { issueUrl: string; installationId?: number },
+) {
+  return apiFetch<{
+    ok: boolean;
+    job: {
+      id: string;
+      status: string;
+      stage: string;
+      issueUrl: string;
+      title: string;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/forge/jobs", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listForgeJobs(token: string) {
+  return apiFetch<{ jobs: ForgeJobListItem[] }>("/v1/forge/jobs", { token });
+}
+
+export function getForgeJob(token: string, id: string) {
+  return apiFetch<{ job: ForgeJobDetail }>(`/v1/forge/jobs/${id}`, { token });
+}
+
+export function approveForgeJob(token: string, id: string) {
+  return apiFetch<{ ok: boolean; message: string }>(
+    `/v1/forge/jobs/${id}/approve`,
+    { method: "POST", token, body: "{}" },
+  );
+}
+
+export function rejectForgeJob(token: string, id: string) {
+  return apiFetch<{ ok: boolean; stage: string }>(
+    `/v1/forge/jobs/${id}/reject`,
+    { method: "POST", token, body: "{}" },
+  );
+}
+
+// ── Radar ──────────────────────────────────────────
+
+export type RadarCause = {
+  rank: number;
+  title: string;
+  confidence: number;
+  evidence: string[];
+  category: string;
+  remediation: string[];
+};
+
+export type RadarReport = {
+  incident_summary: string;
+  severity: "critical" | "high" | "medium" | "low";
+  timeline: { time: string | null; event: string }[];
+  likely_causes: RadarCause[];
+  blast_radius: string;
+  immediate_actions: string[];
+  investigation_checklist: string[];
+  postmortem_draft: {
+    impact: string;
+    detection: string;
+    root_cause: string;
+    resolution: string;
+    lessons: string[];
+  };
+  related_signals: string[];
+};
+
+export type RadarInvestigationListItem = {
+  id: string;
+  status: string;
+  title: string;
+  severity: string | null;
+  summary: string | null;
+  errorCount: number | null;
+  totalLines: number | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RadarInvestigationDetail = {
+  id: string;
+  status: string;
+  title?: string;
+  description?: string | null;
+  metricsNotes?: string | null;
+  logExcerpt?: string;
+  signals: {
+    totalLines?: number;
+    errorCount?: number;
+    warnCount?: number;
+    levels?: Record<string, number>;
+    topServices?: { name: string; count: number }[];
+    topErrorSignatures?: { signature: string; count: number }[];
+    timeRange?: { first: string | null; last: string | null };
+  } | null;
+  result: {
+    report?: RadarReport;
+    meta?: {
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      completedAt?: string;
+      signals?: { totalLines?: number; errorCount?: number; warnCount?: number };
+    };
+  } | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function createRadarInvestigation(
+  token: string,
+  body: {
+    title?: string;
+    description?: string;
+    metricsNotes?: string;
+    logs?: string;
+    logBase64?: string;
+    filename?: string;
+  },
+) {
+  return apiFetch<{
+    ok: boolean;
+    investigation: {
+      id: string;
+      status: string;
+      title: string;
+      errorCount: number;
+      warnCount: number;
+      totalLines: number;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/radar/investigations", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listRadarInvestigations(token: string) {
+  return apiFetch<{ investigations: RadarInvestigationListItem[] }>(
+    "/v1/radar/investigations",
+    { token },
+  );
+}
+
+export function getRadarInvestigation(token: string, id: string) {
+  return apiFetch<{ investigation: RadarInvestigationDetail }>(
+    `/v1/radar/investigations/${id}`,
+    { token },
+  );
+}
