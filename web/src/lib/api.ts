@@ -448,3 +448,168 @@ export function chatAtlasMap(token: string, id: string, message: string) {
   });
 }
 
+// ── Sentinel ───────────────────────────────────────
+
+export type SentinelFinding = {
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  path: string;
+  line: number | null;
+  title: string;
+  body: string;
+  suggestion?: string | null;
+};
+
+export type SentinelReviewPayload = {
+  summary: string;
+  verdict: "approve" | "comment" | "request_changes";
+  findings: SentinelFinding[];
+  positives: string[];
+};
+
+export type SentinelReviewListItem = {
+  id: string;
+  status: string;
+  prUrl: string | null;
+  title: string | null;
+  author: string | null;
+  verdict: string | null;
+  findingCount: number | null;
+  githubReviewUrl: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SentinelReviewDetail = {
+  id: string;
+  status: string;
+  prUrl?: string;
+  title?: string;
+  author?: string;
+  postToGithub?: boolean;
+  autoApprove?: boolean;
+  files: {
+    path: string;
+    status: string;
+    additions: number;
+    deletions: number;
+  }[];
+  result: {
+    review?: SentinelReviewPayload;
+    github?: { reviewId?: number; htmlUrl?: string };
+    postError?: string | null;
+    meta?: {
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      filesReviewed?: number;
+      completedAt?: string;
+    };
+  } | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function getSentinelStatus(token: string) {
+  return apiFetch<{
+    githubAppConfigured: boolean;
+    githubTokenConfigured: boolean;
+    appSlug: string | null;
+    installUrl: string | null;
+    planAllows: boolean;
+    plan: string;
+  }>("/v1/sentinel/status", { token });
+}
+
+export function createSentinelReview(
+  token: string,
+  body: {
+    prUrl: string;
+    postToGithub?: boolean;
+    autoApprove?: boolean;
+    installationId?: number;
+  },
+) {
+  return apiFetch<{
+    ok: boolean;
+    review: {
+      id: string;
+      status: string;
+      prUrl: string;
+      title: string;
+      createdAt: string;
+    };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/sentinel/reviews", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listSentinelReviews(token: string) {
+  return apiFetch<{ reviews: SentinelReviewListItem[] }>(
+    "/v1/sentinel/reviews",
+    { token },
+  );
+}
+
+export function getSentinelReview(token: string, id: string) {
+  return apiFetch<{ review: SentinelReviewDetail }>(
+    `/v1/sentinel/reviews/${id}`,
+    { token },
+  );
+}
+
+export function claimSentinelInstallation(
+  token: string,
+  body: {
+    installationId: number;
+    accountLogin?: string;
+    accountType?: string;
+  },
+) {
+  return apiFetch<{ ok: boolean; installation: unknown }>(
+    "/v1/sentinel/installations",
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function listSentinelInstallations(token: string) {
+  return apiFetch<{
+    installations: {
+      id: string;
+      installation_id: number;
+      account_login: string | null;
+      metadata: {
+        autoApprove?: boolean;
+        enabled?: boolean;
+      } | null;
+      created_at: string;
+    }[];
+  }>("/v1/sentinel/installations", { token });
+}
+
+export function updateSentinelSettings(
+  token: string,
+  body: {
+    installationId: number;
+    autoApprove?: boolean;
+    enabled?: boolean;
+  },
+) {
+  return apiFetch<{ ok: boolean }>(
+    "/v1/sentinel/installations/settings",
+    {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(body),
+    },
+  );
+}
+
