@@ -44,9 +44,9 @@ export function ProductPlaceholder({ product }: { product: Product }) {
             ))}
           </ul>
           <p className="text-sm text-foreground/50">
-            Platform foundation is in place (auth shell, usage, storage, AI
-            abstractions). Product workflows ship in later phases — Blueprint
-            first.
+            This product workspace is reserved for a future release. The six
+            live tools (Blueprint, Pulse, Atlas, Sentinel, Forge, Radar) are
+            available from the dashboard.
           </p>
           <Button asChild variant="secondary">
             <Link href="/app">Back to dashboard</Link>
