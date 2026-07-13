@@ -55,14 +55,16 @@ async function main() {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
       if (env.CORS_ORIGINS.includes(origin)) return cb(null, true);
-      // Allow localhost variants in development
+      // Also allow APP_URL exactly
+      if (origin === env.APP_URL) return cb(null, true);
+      // Localhost only outside production
       if (
         env.NODE_ENV !== "production" &&
         /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
       ) {
         return cb(null, true);
       }
-      cb(new Error("Not allowed by CORS"), false);
+      cb(new Error(`Not allowed by CORS: ${origin}`), false);
     },
     credentials: true,
   });
