@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --background: #05070d;
+  --foreground: #e8edf7;
+  --card: #0a0f1a;
+  --muted: #8b95a8;
+  --accent: #22d3ee;
+  --border: rgba(255, 255, 255, 0.08);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.35);
+  color: #fff;
+}
+
+/* Subtle scrollbar for app shell */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* ── Blueprint high-tech effects ─────────────────── */
+@keyframes blueprint-scanline {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.5;
+  }
+  80% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(120vh);
+    opacity: 0;
+  }
+}
+
+@keyframes blueprint-scan-beam {
+  0% {
+    top: -20%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+@keyframes blueprint-radar {
+  0% {
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.15;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.35);
+    opacity: 0;
+  }
+}
+
+.blueprint-scanline {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(34, 211, 238, 0.12),
+    transparent
+  );
+  animation: blueprint-scanline 7s linear infinite;
+}
+
+.blueprint-scan-beam {
+  animation: blueprint-scan-beam 2.4s ease-in-out infinite;
+}
+
+.blueprint-radar {
+  animation: blueprint-radar 2.8s ease-out infinite;
+}
+
+.blueprint-radar-delay {
+  animation: blueprint-radar 2.8s ease-out infinite;
+  animation-delay: 0.9s;
+}

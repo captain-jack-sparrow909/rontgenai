@@ -1,0 +1,12 @@
+{
+  "name": "rontgenai",
+  "private": true,
+  "description": "Röntgen AI workspace — web + api-gateway",
+  "scripts": {
+    "dev:web": "npm --prefix web run dev",
+    "dev:api": "npm --prefix api-gateway run dev",
+    "build:web": "npm --prefix web run build",
+    "typecheck:api": "npm --prefix api-gateway run typecheck",
+    "migrate": "node --env-file=web/.env.local scripts/apply-migrations.mjs"
+  }
+}
