@@ -42,7 +42,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        {/* ClerkProvider must wrap all auth components (Show, UserButton, etc.) */}
+        {/* ClerkProvider must wrap all auth components (UserButton, etc.) */}
         <ClerkProvider>
           <Providers>{children}</Providers>
         </ClerkProvider>
