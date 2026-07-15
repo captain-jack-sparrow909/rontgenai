@@ -9,7 +9,9 @@ const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
  * domain (www.rontgenai.dev) the middleware never proxied `/__clerk/*`, so
  * clerk-js 404'd and auth UI never hydrated.
  *
- * Explicitly enable the proxy on every host so `/__clerk` works in production.
+ * Keep the proxy enabled for deployed hosts, but let local development talk to
+ * Clerk directly. Proxying a refresh handshake through localhost makes Clerk
+ * attribute the request to localhost and reject it with `host_invalid`.
  */
 export default clerkMiddleware(
   async (auth, req) => {
@@ -19,7 +21,18 @@ export default clerkMiddleware(
   },
   {
     frontendApiProxy: {
-      enabled: true,
+      enabled: (url) => {
+        const hostname = url.hostname.toLowerCase();
+        const isLocalhost =
+          hostname === "localhost" ||
+          hostname.endsWith(".localhost") ||
+          hostname === "127.0.0.1" ||
+          hostname === "0.0.0.0" ||
+          hostname === "[::1]" ||
+          hostname === "::1";
+
+        return !isLocalhost;
+      },
     },
   },
 );
