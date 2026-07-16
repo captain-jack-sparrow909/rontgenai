@@ -163,17 +163,12 @@ function ScanningOverlay({ visible }: { visible: boolean }) {
           transition={{ duration: 0.25 }}
           className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-[#060910]/94 backdrop-blur-sm"
         >
-          {/* Scanline moving across overlay */}
           <div className="blueprint-scan-beam pointer-events-none absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
 
-          {/* Radar rings */}
           <div className="relative mb-7 flex h-36 w-36 items-center justify-center">
             <div className="blueprint-radar absolute inset-0 rounded-full border border-cyan-400/28" />
             <div className="blueprint-radar-delay absolute inset-0 scale-75 rounded-full border border-cyan-400/18" />
-            <div
-              className="absolute inset-0 rounded-full border border-cyan-400/10"
-              style={{ transform: "scale(0.5)" }}
-            />
+            <div className="absolute inset-0 rounded-full border border-cyan-400/10" style={{ transform: "scale(0.5)" }} />
             <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-cyan-400/20 bg-gradient-to-br from-cyan-400/[0.08] to-blue-500/[0.04]">
               <Scan className="h-9 w-9 text-cyan-400/65" />
             </div>
@@ -241,14 +236,10 @@ function BlueprintHero({
 }) {
   return (
     <div className="relative mb-6 overflow-hidden rounded-3xl border border-cyan-400/[0.14] bg-gradient-to-br from-[#070d1a] via-[#060910] to-[#05070d] p-6 sm:p-8">
-      {/* Top glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
-      {/* Bottom glow */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/12 to-transparent" />
-      {/* Reticle corners */}
       <ReticleCorners alpha={0.28} />
 
-      {/* Radar target decoration — top-right */}
       <div className="pointer-events-none absolute -right-8 -top-8 h-72 w-72 opacity-[0.065]">
         <svg viewBox="0 0 240 240" fill="none">
           {[100, 74, 50, 26].map((r) => (
@@ -265,13 +256,11 @@ function BlueprintHero({
         </svg>
       </div>
 
-      {/* Moving scan beam */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-36 overflow-hidden">
         <div className="blueprint-scan-beam absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
       </div>
 
       <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-        {/* Left — icon + title */}
         <div className="flex items-center gap-5">
           <div className="relative shrink-0">
             <div className="absolute inset-0 rounded-2xl bg-cyan-400/22 blur-xl" />
@@ -307,9 +296,7 @@ function BlueprintHero({
           </div>
         </div>
 
-        {/* Right — quota + stat cards */}
         <div className="flex shrink-0 flex-col gap-2 sm:min-w-[200px]">
-          {/* Quota */}
           <div className="rounded-2xl border border-white/[0.07] bg-black/40 px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-1.5">
@@ -334,7 +321,6 @@ function BlueprintHero({
             </div>
             <p className="mt-1.5 text-[10px] text-foreground/25">this month</p>
           </div>
-          {/* Status pill */}
           <div className="flex items-center justify-between rounded-xl border border-emerald-400/14 bg-emerald-400/[0.05] px-3 py-2">
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -345,7 +331,6 @@ function BlueprintHero({
         </div>
       </div>
 
-      {/* Telemetry row */}
       <TelemetryRow />
     </div>
   );
@@ -466,7 +451,6 @@ export default function BlueprintPage() {
         />
       </FadeIn>
 
-      {/* Capability strip */}
       <FadeIn delay={0.12}>
         <CapabilityStrip />
       </FadeIn>
@@ -475,19 +459,13 @@ export default function BlueprintPage() {
         {/* ── Composer ─────────────────────────────────────────────────── */}
         <FadeIn delay={0.1}>
           <form onSubmit={onSubmit}>
-            <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#060910]"
-              style={{
-                animation: submitting ? "none" : "bp-border-breathe 4s ease-in-out infinite",
-              }}
+            <div
+              className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#060910]"
+              style={{ animation: submitting ? "none" : "bp-border-breathe 4s ease-in-out infinite" }}
             >
-              {/* Top glow */}
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
-              {/* Circuit decoration bottom-right */}
               <CircuitDecoration />
-              {/* Reticle corners */}
               <ReticleCorners alpha={0.2} />
-
-              {/* Scanning overlay */}
               <ScanningOverlay visible={submitting} />
 
               {/* Window chrome */}
@@ -496,15 +474,11 @@ export default function BlueprintPage() {
                   <span className="h-2.5 w-2.5 rounded-full bg-red-400/65" />
                   <span className="h-2.5 w-2.5 rounded-full bg-amber-400/65" />
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/65" />
-                  <span className="ml-3 font-mono text-[10px] text-foreground/28">
-                    blueprint.session
-                  </span>
+                  <span className="ml-3 font-mono text-[10px] text-foreground/28">blueprint.session</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Activity className="h-3 w-3 text-cyan-400/50" />
-                  <span className="font-mono text-[10px] font-semibold tracking-widest text-cyan-400/50">
-                    READY
-                  </span>
+                  <span className="font-mono text-[10px] font-semibold tracking-widest text-cyan-400/50">READY</span>
                 </div>
               </div>
 
@@ -513,9 +487,7 @@ export default function BlueprintPage() {
                 <div>
                   <label className="mb-2 flex items-center gap-2">
                     <span className="font-mono text-[9px] text-cyan-400/55">SYS://</span>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">
-                      System name
-                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">System name</span>
                   </label>
                   <input
                     value={title}
@@ -542,13 +514,13 @@ export default function BlueprintPage() {
                             active ? "text-cyan-100" : "text-foreground/35 hover:text-foreground/60",
                           )}
                         >
-                          {active ? (
+                          {active && (
                             <motion.span
                               layoutId="bp-tab-pill"
                               className="absolute inset-0 rounded-lg bg-gradient-to-b from-cyan-500/[0.18] to-cyan-600/[0.04] ring-1 ring-inset ring-cyan-400/24"
                               transition={{ type: "spring", bounce: 0.15, duration: 0.36 }}
                             />
-                          ) : null}
+                          )}
                           <Icon className="relative h-4 w-4" />
                           <span className="relative hidden text-[10px] font-semibold sm:block">{t.label}</span>
                           <span className="relative hidden text-[9px] text-foreground/26 sm:block">{t.hint}</span>
@@ -578,9 +550,7 @@ export default function BlueprintPage() {
                               <Code2 className="h-3 w-3 text-cyan-400/55" />
                               <span className="font-mono text-[10px] text-foreground/30">diagram.mmd</span>
                             </div>
-                            <span className="rounded bg-cyan-400/[0.09] px-1.5 py-0.5 font-mono text-[9px] font-bold text-cyan-400/65">
-                              Mermaid
-                            </span>
+                            <span className="rounded bg-cyan-400/[0.09] px-1.5 py-0.5 font-mono text-[9px] font-bold text-cyan-400/65">Mermaid</span>
                           </div>
                           <div className="flex">
                             <div className="select-none border-r border-white/[0.04] bg-black/30 px-3 py-3 text-right font-mono text-[11px] leading-[1.75rem] text-foreground/16">
@@ -676,10 +646,10 @@ export default function BlueprintPage() {
                 {/* Submit */}
                 <div className="pt-1">
                   <div className="relative">
-                    {/* Rotating conic border */}
+                    {/* Rotating conic border — the only bright element */}
                     {!submitting && (
                       <div
-                        className="absolute -inset-[2px] rounded-xl opacity-65"
+                        className="absolute -inset-[2px] rounded-xl opacity-50"
                         style={{
                           background: "conic-gradient(from var(--bp-angle, 0deg), #22d3ee, #3b82f6, #8b5cf6, #22d3ee)",
                           animation: "bp-conic-spin 3s linear infinite",
@@ -690,7 +660,7 @@ export default function BlueprintPage() {
                       type="submit"
                       disabled={submitting}
                       size="lg"
-                      className="relative z-10 w-full border-0 bg-gradient-to-r from-cyan-500 to-blue-600 py-6 text-base font-bold text-slate-950 shadow-xl shadow-cyan-500/18 hover:from-cyan-400 hover:to-blue-500"
+                      className="relative z-10 w-full border border-transparent bg-[#070c14] py-6 text-base font-semibold text-cyan-200/80 shadow-none transition hover:bg-[#0a1220] hover:text-cyan-100 disabled:opacity-40"
                     >
                       {submitting ? (
                         <>
@@ -699,7 +669,7 @@ export default function BlueprintPage() {
                         </>
                       ) : (
                         <>
-                          <Sparkles className="h-5 w-5" />
+                          <Sparkles className="h-4 w-4 opacity-70" />
                           Run Blueprint Review
                         </>
                       )}
@@ -717,14 +687,10 @@ export default function BlueprintPage() {
         {/* ── Mission Log ──────────────────────────────────────────────── */}
         <FadeIn delay={0.16} className="min-w-0">
           <div className="mb-3 flex items-center gap-2">
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-cyan-400/55">
-              SYS:LOG
-            </span>
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-cyan-400/55">SYS:LOG</span>
             <div className="h-px flex-1 bg-gradient-to-r from-cyan-400/16 to-transparent" />
             {history.data?.reviews.length ? (
-              <span className="font-mono text-[10px] text-foreground/25">
-                {history.data.reviews.length} sessions
-              </span>
+              <span className="font-mono text-[10px] text-foreground/25">{history.data.reviews.length} sessions</span>
             ) : null}
           </div>
 
@@ -784,7 +750,6 @@ export default function BlueprintPage() {
                       >
                         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
 
-                        {/* Scan line on succeeded cards */}
                         {succeeded && (
                           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl opacity-40">
                             <div className="blueprint-scan-beam absolute inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
