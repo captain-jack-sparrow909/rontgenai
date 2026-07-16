@@ -64,17 +64,18 @@ export function MobileNav() {
               {/* Logo */}
               <div className="flex h-14 items-center justify-between border-b border-white/[0.05] px-4">
                 <Link href="/app" className="flex items-center gap-2.5">
-                  <div className="relative">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-bold text-slate-950">
-                      R
-                    </span>
-                    <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-                      <span className="relative flex h-2 w-2 rounded-full border border-[#060810] bg-emerald-400" />
-                    </span>
-                  </div>
-                  <span className="text-sm font-semibold">
-                    Röntgen<span className="text-cyan-400">AI</span>
+                  <MobileLogoMark />
+                  <span
+                    style={{
+                      fontFamily: "var(--font-rajdhani),sans-serif",
+                      fontWeight: 700,
+                      fontSize: "15px",
+                      color: "#EDF2F7",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    RÖNTGEN
+                    <span style={{ color: "rgba(0,229,255,0.7)", fontWeight: 400 }}> AI</span>
                   </span>
                 </Link>
                 <button
@@ -184,6 +185,28 @@ export function MobileNav() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function MobileLogoMark() {
+  return (
+    <div className="relative h-6 w-6 flex-shrink-0">
+      <div
+        className="absolute inset-0 rounded-md"
+        style={{
+          background: "linear-gradient(135deg,rgba(0,229,255,0.18),rgba(0,229,255,0.03))",
+          border: "1px solid rgba(0,229,255,0.28)",
+        }}
+      />
+      <svg viewBox="0 0 24 24" className="absolute inset-0 h-full w-full" fill="none">
+        <circle cx="12" cy="12" r="4" stroke="#00E5FF" strokeWidth="1.4" />
+        <line x1="12" y1="2" x2="12" y2="7" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.45" />
+        <line x1="12" y1="17" x2="12" y2="22" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.45" />
+        <line x1="2" y1="12" x2="7" y2="12" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.45" />
+        <line x1="17" y1="12" x2="22" y2="12" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.45" />
+        <circle cx="12" cy="12" r="1.5" fill="#00E5FF" />
+      </svg>
+    </div>
   );
 }
 

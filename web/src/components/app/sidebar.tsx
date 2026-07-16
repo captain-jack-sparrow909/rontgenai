@@ -8,7 +8,6 @@ import { useMe } from "@/hooks/use-me";
 import { availableProducts } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
-/** Per-product RGB triplet for the active state accent */
 const SLUG_RGB: Record<string, string> = {
   blueprint: "34,211,238",
   pulse:     "52,211,153",
@@ -30,7 +29,6 @@ export function AppSidebar() {
 
   return (
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-white/[0.06] bg-[#060810]/96 backdrop-blur-xl">
-      {/* Ambient vertical glow along left edge */}
       <div className="pointer-events-none absolute inset-y-0 left-0 w-px">
         <div className="h-full w-full bg-gradient-to-b from-transparent via-cyan-400/15 to-transparent" />
       </div>
@@ -38,26 +36,24 @@ export function AppSidebar() {
       {/* ── Logo ── */}
       <div className="flex h-14 items-center border-b border-white/[0.05] px-4">
         <Link href="/app" className="group flex items-center gap-2.5">
-          <div className="relative">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-bold text-slate-950 shadow-md shadow-cyan-500/25 transition group-hover:shadow-cyan-500/45">
-              R
-            </span>
-            {/* System online dot */}
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-55" />
-              <span className="relative flex h-2 w-2 rounded-full border border-[#060810] bg-emerald-400" />
-            </span>
-          </div>
-          <span className="text-sm font-semibold tracking-tight">
-            Röntgen<span className="text-cyan-400">AI</span>
+          <LogoMark />
+          <span
+            style={{
+              fontFamily: "var(--font-rajdhani),sans-serif",
+              fontWeight: 700,
+              fontSize: "15px",
+              color: "#EDF2F7",
+              letterSpacing: "0.08em",
+            }}
+          >
+            RÖNTGEN
+            <span style={{ color: "rgba(0,229,255,0.7)", fontWeight: 400 }}> AI</span>
           </span>
         </Link>
       </div>
 
       {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto p-2.5">
-
-        {/* Dashboard */}
         <div className="mb-1">
           <SidebarLink
             href="/app"
@@ -68,7 +64,6 @@ export function AppSidebar() {
           </SidebarLink>
         </div>
 
-        {/* Products */}
         <SectionHeader>Products</SectionHeader>
         <div className="space-y-0.5">
           {availableProducts.map((p) => {
@@ -111,7 +106,6 @@ export function AppSidebar() {
           })}
         </div>
 
-        {/* Account */}
         <SectionHeader>Account</SectionHeader>
         <div className="space-y-0.5">
           {navExtra.map(({ href, label, icon: Icon }) => (
@@ -125,7 +119,6 @@ export function AppSidebar() {
             </SidebarLink>
           ))}
         </div>
-
       </nav>
 
       {/* ── Plan card ── */}
@@ -154,6 +147,29 @@ export function AppSidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+/** The crosshair icon mark that matches the landing page nav */
+function LogoMark() {
+  return (
+    <div className="relative h-6 w-6 flex-shrink-0">
+      <div
+        className="absolute inset-0 rounded-md"
+        style={{
+          background: "linear-gradient(135deg,rgba(0,229,255,0.18),rgba(0,229,255,0.03))",
+          border: "1px solid rgba(0,229,255,0.28)",
+        }}
+      />
+      <svg viewBox="0 0 24 24" className="absolute inset-0 h-full w-full" fill="none">
+        <circle cx="12" cy="12" r="4" stroke="#00E5FF" strokeWidth="1.4" />
+        <line x1="12" y1="2" x2="12" y2="7" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.45" />
+        <line x1="12" y1="17" x2="12" y2="22" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.45" />
+        <line x1="2" y1="12" x2="7" y2="12" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.45" />
+        <line x1="17" y1="12" x2="22" y2="12" stroke="#00E5FF" strokeWidth="1" strokeOpacity="0.45" />
+        <circle cx="12" cy="12" r="1.5" fill="#00E5FF" />
+      </svg>
+    </div>
   );
 }
 
