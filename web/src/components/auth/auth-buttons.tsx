@@ -4,13 +4,6 @@ import Link from "next/link";
 import { UserButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
-/**
- * Always render visible CTAs as hard links.
- *
- * Clerk modals / <Show> depend on clerk-js loading. If the FAPI proxy or
- * script fails, those components render nothing and the header looks empty.
- * Links to /sign-in and /sign-up always work.
- */
 export function AuthButtons({
   size = "default",
 }: {
@@ -19,17 +12,9 @@ export function AuthButtons({
   const { isLoaded, isSignedIn } = useAuth();
 
   if (isLoaded && isSignedIn) {
-    return (
-      <div className="flex items-center gap-3">
-        <Button asChild variant="secondary" size={size}>
-          <Link href="/app">Dashboard</Link>
-        </Button>
-        <UserButton />
-      </div>
-    );
+    return <UserButton />;
   }
 
-  // Loading, Clerk failed, or signed out — always show working links
   return (
     <div className="flex items-center gap-2">
       <Button asChild variant="ghost" size={size}>
