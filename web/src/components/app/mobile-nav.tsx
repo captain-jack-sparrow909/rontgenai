@@ -10,21 +10,25 @@ import { useMe } from "@/hooks/use-me";
 import { availableProducts } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
+const SLUG_RGB: Record<string, string> = {
+  blueprint: "34,211,238",
+  pulse:     "52,211,153",
+  atlas:     "167,139,250",
+  sentinel:  "251,191,36",
+  forge:     "251,113,133",
+  radar:     "248,113,113",
+};
+
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { data: me } = useMe();
   const plan = me?.subscription.plan ?? "free";
 
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-
+  useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [open]);
 
   return (
@@ -32,36 +36,43 @@ export function MobileNav() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white md:hidden"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.04] text-foreground/55 transition hover:border-white/15 hover:bg-white/[0.07] hover:text-white md:hidden"
         aria-label="Open menu"
       >
         <Menu className="h-4 w-4" />
       </button>
 
       <AnimatePresence>
-        {open ? (
+        {open && (
           <>
             <motion.button
               type="button"
-              aria-label="Close menu backdrop"
-              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm md:hidden"
+              aria-label="Close menu"
+              className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm md:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
             />
             <motion.aside
-              className="fixed inset-y-0 left-0 z-50 flex w-[min(100%,18rem)] flex-col border-r border-white/10 bg-[#070a12] shadow-2xl md:hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(100%,18rem)] flex-col border-r border-white/[0.07] bg-[#060810] shadow-2xl md:hidden"
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", bounce: 0.12, duration: 0.4 }}
             >
-              <div className="flex h-14 items-center justify-between border-b border-white/5 px-4">
-                <Link href="/app" className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-bold text-slate-950">
-                    R
-                  </span>
+              {/* Logo */}
+              <div className="flex h-14 items-center justify-between border-b border-white/[0.05] px-4">
+                <Link href="/app" className="flex items-center gap-2.5">
+                  <div className="relative">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-bold text-slate-950">
+                      R
+                    </span>
+                    <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-55" />
+                      <span className="relative flex h-2 w-2 rounded-full border border-[#060810] bg-emerald-400" />
+                    </span>
+                  </div>
                   <span className="text-sm font-semibold">
                     Röntgen<span className="text-cyan-400">AI</span>
                   </span>
@@ -69,90 +80,126 @@ export function MobileNav() {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg p-2 text-foreground/60 hover:bg-white/5"
-                  aria-label="Close menu"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-foreground/45 transition hover:bg-white/[0.05] hover:text-white"
+                  aria-label="Close"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-                <NavLink
-                  href="/app"
-                  active={pathname === "/app"}
-                  icon={<LayoutDashboard className="h-4 w-4" />}
-                >
-                  Dashboard
-                </NavLink>
-                <p className="px-3 pb-1 pt-4 text-[10px] font-medium uppercase tracking-wider text-foreground/35">
-                  Products
-                </p>
-                {availableProducts.map((p) => (
-                  <Link
-                    key={p.slug}
-                    href={p.href}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition",
-                      pathname.startsWith(p.href)
-                        ? "bg-white/10 text-white"
-                        : "text-foreground/60 hover:bg-white/5 hover:text-white",
-                    )}
+              {/* Nav */}
+              <nav className="flex-1 overflow-y-auto p-2.5">
+                <div className="mb-1">
+                  <MobileNavLink
+                    href="/app"
+                    active={pathname === "/app"}
+                    icon={<LayoutDashboard className="h-3.5 w-3.5" />}
                   >
-                    <span
-                      className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br text-slate-950",
-                        p.accent,
-                      )}
+                    Dashboard
+                  </MobileNavLink>
+                </div>
+
+                <MobileSectionHeader>Products</MobileSectionHeader>
+                <div className="space-y-0.5">
+                  {availableProducts.map((p) => {
+                    const active = pathname.startsWith(p.href);
+                    const rgb = SLUG_RGB[p.slug] ?? "34,211,238";
+                    return (
+                      <Link
+                        key={p.slug}
+                        href={p.href}
+                        className={cn(
+                          "group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-200",
+                          active ? "text-white" : "text-foreground/48 hover:text-foreground/88",
+                        )}
+                        style={active ? {
+                          background: `rgba(${rgb},0.07)`,
+                          boxShadow:  `inset 0 0 0 1px rgba(${rgb},0.12)`,
+                        } : undefined}
+                      >
+                        {active && (
+                          <span
+                            className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full"
+                            style={{ background: `rgb(${rgb})`, boxShadow: `0 0 8px rgba(${rgb},0.9)` }}
+                          />
+                        )}
+                        <span
+                          className={cn(
+                            "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-gradient-to-br text-slate-950 transition-all",
+                            p.accent,
+                            active ? "scale-105 shadow-md" : "opacity-80 group-hover:opacity-100",
+                          )}
+                        >
+                          <ProductIcon name={p.icon} className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="font-medium">{p.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <MobileSectionHeader>Account</MobileSectionHeader>
+                <div className="space-y-0.5">
+                  {[
+                    { href: "/app/billing",  label: "Billing",  icon: CreditCard },
+                    { href: "/app/settings", label: "Settings", icon: Settings   },
+                  ].map(({ href, label, icon: Icon }) => (
+                    <MobileNavLink
+                      key={href}
+                      href={href}
+                      active={pathname.startsWith(href)}
+                      icon={<Icon className="h-3.5 w-3.5" />}
                     >
-                      <ProductIcon name={p.icon} className="h-3.5 w-3.5" />
-                    </span>
-                    {p.name}
-                  </Link>
-                ))}
-                <p className="px-3 pb-1 pt-4 text-[10px] font-medium uppercase tracking-wider text-foreground/35">
-                  Account
-                </p>
-                <NavLink
-                  href="/app/billing"
-                  active={pathname.startsWith("/app/billing")}
-                  icon={<CreditCard className="h-4 w-4" />}
-                >
-                  Billing
-                </NavLink>
-                <NavLink
-                  href="/app/settings"
-                  active={pathname.startsWith("/app/settings")}
-                  icon={<Settings className="h-4 w-4" />}
-                >
-                  Settings
-                </NavLink>
+                      {label}
+                    </MobileNavLink>
+                  ))}
+                </div>
               </nav>
 
-              <div className="border-t border-white/5 p-3">
-                <div className="rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wider text-foreground/40">
-                    Plan
-                  </p>
-                  <p className="text-sm font-medium capitalize text-white">
-                    {plan}
-                  </p>
+              {/* Plan card */}
+              <div className="border-t border-white/[0.05] p-2.5">
+                <div className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-gradient-to-br from-white/[0.05] to-transparent px-3 py-2.5">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent" />
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-foreground/35">Plan</p>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                        plan === "free" ? "bg-white/[0.07] text-foreground/45" : "bg-cyan-400/15 text-cyan-300",
+                      )}
+                    >
+                      {plan}
+                    </span>
+                  </div>
                   <Link
                     href="/app/billing"
-                    className="text-xs text-cyan-400 hover:underline"
+                    className="mt-1.5 inline-block text-[11px] font-medium text-cyan-400/75 transition hover:text-cyan-300"
                   >
-                    {plan === "free" ? "Upgrade" : "Manage"}
+                    {plan === "free" ? "Upgrade for GitHub tools →" : "Manage billing →"}
                   </Link>
                 </div>
               </div>
             </motion.aside>
           </>
-        ) : null}
+        )}
       </AnimatePresence>
     </>
   );
 }
 
-function NavLink({
+function MobileSectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-1 mt-4 flex items-center gap-2 px-1">
+      <div className="h-px flex-1 bg-white/[0.06]" />
+      <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-foreground/28">
+        {children}
+      </span>
+      <div className="h-px flex-1 bg-white/[0.06]" />
+    </div>
+  );
+}
+
+function MobileNavLink({
   href,
   active,
   icon,
@@ -167,14 +214,24 @@ function NavLink({
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition",
+        "group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-all duration-200",
         active
-          ? "bg-white/10 text-white"
-          : "text-foreground/60 hover:bg-white/5 hover:text-white",
+          ? "bg-white/[0.06] text-white ring-1 ring-white/[0.08]"
+          : "text-foreground/48 hover:bg-white/[0.03] hover:text-foreground/88",
       )}
     >
-      {icon}
-      {children}
+      {active && (
+        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-cyan-400 shadow-[0_0_7px_rgba(34,211,238,0.8)]" />
+      )}
+      <span
+        className={cn(
+          "transition-colors",
+          active ? "text-cyan-300/80" : "text-foreground/38 group-hover:text-foreground/65",
+        )}
+      >
+        {icon}
+      </span>
+      <span className="font-medium">{children}</span>
     </Link>
   );
 }
