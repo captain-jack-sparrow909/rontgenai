@@ -13,6 +13,7 @@ import {
   FileImage,
   Layers,
   Loader2,
+  Scan,
   Sparkles,
   Upload,
   X,
@@ -51,12 +52,179 @@ function BlueprintGrid() {
       className="pointer-events-none fixed inset-0 -z-10"
       style={{
         backgroundImage: [
-          "linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px)",
-          "linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px)",
+          "linear-gradient(rgba(34,211,238,0.035) 1px, transparent 1px)",
+          "linear-gradient(90deg, rgba(34,211,238,0.035) 1px, transparent 1px)",
         ].join(","),
         backgroundSize: "48px 48px",
       }}
     />
+  );
+}
+
+// ─── ReticleCorners ───────────────────────────────────────────────────────────
+
+function ReticleCorners({ alpha = 0.32 }: { alpha?: number }) {
+  const s = `rgba(34,211,238,${alpha})`;
+  return (
+    <>
+      <svg className="pointer-events-none absolute left-3 top-3 h-4 w-4" viewBox="0 0 14 14" fill="none">
+        <path d="M0 10 L0 0 L10 0" stroke={s} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <svg className="pointer-events-none absolute right-3 top-3 h-4 w-4" viewBox="0 0 14 14" fill="none">
+        <path d="M14 10 L14 0 L4 0" stroke={s} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <svg className="pointer-events-none absolute bottom-3 left-3 h-4 w-4" viewBox="0 0 14 14" fill="none">
+        <path d="M0 4 L0 14 L10 14" stroke={s} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <svg className="pointer-events-none absolute bottom-3 right-3 h-4 w-4" viewBox="0 0 14 14" fill="none">
+        <path d="M14 4 L14 14 L4 14" stroke={s} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </>
+  );
+}
+
+// ─── CapabilityStrip ──────────────────────────────────────────────────────────
+
+const CAPABILITIES = [
+  "Scalability",
+  "Reliability",
+  "SPOF Detection",
+  "Bottlenecks",
+  "Latency Paths",
+  "Security Surface",
+  "Cost Efficiency",
+  "Data Flow",
+];
+
+function CapabilityStrip() {
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-2">
+      <span className="mr-1 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-foreground/28">
+        Analyzes
+      </span>
+      {CAPABILITIES.map((cap, i) => (
+        <motion.span
+          key={cap}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 + i * 0.04, duration: 0.3 }}
+          className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1 text-[11px] text-foreground/45 transition hover:border-cyan-400/22 hover:text-foreground/65"
+        >
+          <span className="h-1 w-1 rounded-full bg-cyan-400/45" />
+          {cap}
+        </motion.span>
+      ))}
+    </div>
+  );
+}
+
+// ─── TelemetryRow ─────────────────────────────────────────────────────────────
+
+const TELEMETRY = [
+  { label: "ENGINE", value: "DeepSeek v3" },
+  { label: "AVG TIME", value: "< 60 s" },
+  { label: "DIMENSIONS", value: "7 axes" },
+  { label: "OUTPUT", value: "Scores + Fixes" },
+];
+
+function TelemetryRow() {
+  return (
+    <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-white/[0.05] pt-4">
+      {TELEMETRY.map((t, i) => (
+        <motion.div
+          key={t.label}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 + i * 0.06 }}
+          className="flex items-center gap-2"
+        >
+          <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-foreground/25">
+            {t.label}
+          </span>
+          <span className="font-mono text-[11px] font-semibold text-cyan-300/55">
+            {t.value}
+          </span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// ─── ScanningOverlay ─────────────────────────────────────────────────────────
+
+function ScanningOverlay({ visible }: { visible: boolean }) {
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-[#060910]/94 backdrop-blur-sm"
+        >
+          {/* Scanline moving across overlay */}
+          <div className="blueprint-scan-beam pointer-events-none absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+
+          {/* Radar rings */}
+          <div className="relative mb-7 flex h-36 w-36 items-center justify-center">
+            <div className="blueprint-radar absolute inset-0 rounded-full border border-cyan-400/28" />
+            <div className="blueprint-radar-delay absolute inset-0 scale-75 rounded-full border border-cyan-400/18" />
+            <div
+              className="absolute inset-0 rounded-full border border-cyan-400/10"
+              style={{ transform: "scale(0.5)" }}
+            />
+            <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-cyan-400/20 bg-gradient-to-br from-cyan-400/[0.08] to-blue-500/[0.04]">
+              <Scan className="h-9 w-9 text-cyan-400/65" />
+            </div>
+          </div>
+
+          <p
+            className="font-bold uppercase tracking-[0.35em] text-cyan-300"
+            style={{ fontFamily: "var(--font-rajdhani), var(--font-geist-sans), system-ui, sans-serif", fontSize: "1rem" }}
+          >
+            Initializing Scan
+          </p>
+
+          <div className="mt-3 flex gap-2">
+            {[0, 0.18, 0.36].map((d) => (
+              <motion.span
+                key={d}
+                className="h-1.5 w-1.5 rounded-full bg-cyan-400/45"
+                animate={{ opacity: [0.15, 1, 0.15], scale: [0.8, 1.2, 0.8] }}
+                transition={{ duration: 1.3, delay: d, repeat: Infinity, ease: "easeInOut" }}
+              />
+            ))}
+          </div>
+
+          <p className="mt-4 text-center text-[11px] text-foreground/28">
+            Powered by DeepSeek · typically under 60 s
+          </p>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─── CircuitDecoration ────────────────────────────────────────────────────────
+
+function CircuitDecoration() {
+  return (
+    <svg
+      className="pointer-events-none absolute bottom-0 right-0 h-48 w-48 opacity-[0.025]"
+      viewBox="0 0 160 160"
+      fill="none"
+    >
+      <path d="M160 80 L120 80 L120 40 L80 40 L80 0" stroke="#22d3ee" strokeWidth="1" />
+      <path d="M160 120 L100 120 L100 60 L60 60 L60 0" stroke="#22d3ee" strokeWidth="1" strokeDasharray="4 6" />
+      <circle cx="120" cy="80" r="3" fill="#22d3ee" />
+      <circle cx="80" cy="40" r="3" fill="#22d3ee" />
+      <circle cx="100" cy="120" r="3" fill="#22d3ee" />
+      <circle cx="60" cy="60" r="3" fill="#22d3ee" />
+      <path d="M0 100 L40 100 L40 140 L80 140 L80 160" stroke="#22d3ee" strokeWidth="1" />
+      <circle cx="40" cy="100" r="3" fill="#22d3ee" />
+      <circle cx="80" cy="140" r="3" fill="#22d3ee" />
+    </svg>
   );
 }
 
@@ -72,64 +240,63 @@ function BlueprintHero({
   usagePct: number;
 }) {
   return (
-    <div className="relative mb-8 overflow-hidden rounded-3xl border border-cyan-400/[0.14] bg-gradient-to-br from-[#070d1a] via-[#060910] to-[#05070d] p-6 sm:p-8">
-      {/* Top glow line */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/55 to-transparent" />
-      {/* Bottom glow line */}
+    <div className="relative mb-6 overflow-hidden rounded-3xl border border-cyan-400/[0.14] bg-gradient-to-br from-[#070d1a] via-[#060910] to-[#05070d] p-6 sm:p-8">
+      {/* Top glow */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+      {/* Bottom glow */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/12 to-transparent" />
+      {/* Reticle corners */}
+      <ReticleCorners alpha={0.28} />
 
-      {/* Decorative radar target — top-right */}
-      <div className="pointer-events-none absolute -right-10 -top-10 h-72 w-72 opacity-[0.06]">
-        <svg viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-          {[100, 76, 52, 28].map((r) => (
+      {/* Radar target decoration — top-right */}
+      <div className="pointer-events-none absolute -right-8 -top-8 h-72 w-72 opacity-[0.065]">
+        <svg viewBox="0 0 240 240" fill="none">
+          {[100, 74, 50, 26].map((r) => (
             <circle key={r} cx="120" cy="120" r={r} stroke="#22d3ee" strokeWidth="1" />
           ))}
           <line x1="20" y1="120" x2="220" y2="120" stroke="#22d3ee" strokeWidth="0.6" />
           <line x1="120" y1="20" x2="120" y2="220" stroke="#22d3ee" strokeWidth="0.6" />
-          <circle cx="120" cy="20" r="4" fill="#22d3ee" />
-          <circle cx="220" cy="120" r="4" fill="#22d3ee" />
-          <circle cx="120" cy="220" r="4" fill="#22d3ee" />
-          <circle cx="20" cy="120" r="4" fill="#22d3ee" />
-          <line x1="62" y1="62" x2="178" y2="178" stroke="#22d3ee" strokeWidth="0.4" strokeDasharray="4 8" />
-          <line x1="178" y1="62" x2="62" y2="178" stroke="#22d3ee" strokeWidth="0.4" strokeDasharray="4 8" />
+          <line x1="55" y1="55" x2="185" y2="185" stroke="#22d3ee" strokeWidth="0.4" strokeDasharray="4 8" />
+          <line x1="185" y1="55" x2="55" y2="185" stroke="#22d3ee" strokeWidth="0.4" strokeDasharray="4 8" />
+          {[0, 90, 180, 270].map((deg) => {
+            const r = (deg * Math.PI) / 180;
+            return <circle key={deg} cx={120 + 100 * Math.cos(r)} cy={120 + 100 * Math.sin(r)} r="4" fill="#22d3ee" />;
+          })}
         </svg>
       </div>
 
-      {/* Scan beam */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 overflow-hidden">
-        <div className="blueprint-scan-beam absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/45 to-transparent" />
+      {/* Moving scan beam */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 overflow-hidden">
+        <div className="blueprint-scan-beam absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
       </div>
 
-      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         {/* Left — icon + title */}
         <div className="flex items-center gap-5">
           <div className="relative shrink-0">
-            <div className="absolute inset-0 rounded-2xl bg-cyan-400/25 blur-xl" />
+            <div className="absolute inset-0 rounded-2xl bg-cyan-400/22 blur-xl" />
             <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 via-cyan-400 to-blue-600 shadow-xl shadow-cyan-500/30">
               <Layers className="h-7 w-7 text-slate-950" />
             </span>
-            {/* Pulse rings around icon */}
-            <span className="blueprint-radar absolute inset-[-6px] rounded-3xl border border-cyan-400/30" />
+            <span className="blueprint-radar absolute -inset-1.5 rounded-3xl border border-cyan-400/28" />
           </div>
 
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.07] px-2.5 py-0.5">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.07] px-3 py-0.5">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-60" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-400" />
               </span>
               <span className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-cyan-400">
-                Architecture X-Ray · Live
+                Architecture X-Ray · Online
               </span>
             </div>
 
             <h1
-              className="bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl"
+              className="bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-[3.2rem]"
               style={{
-                fontFamily:
-                  "var(--font-rajdhani), var(--font-geist-sans), system-ui, sans-serif",
-                backgroundImage:
-                  "linear-gradient(135deg, #e0f9ff 0%, #22d3ee 35%, #60a5fa 80%)",
+                fontFamily: "var(--font-rajdhani), var(--font-geist-sans), system-ui, sans-serif",
+                backgroundImage: "linear-gradient(135deg, #e8faff 0%, #22d3ee 30%, #60a5fa 75%, #a78bfa 100%)",
               }}
             >
               Blueprint
@@ -140,32 +307,46 @@ function BlueprintHero({
           </div>
         </div>
 
-        {/* Right — quota meter */}
-        <div className="shrink-0 rounded-2xl border border-white/[0.07] bg-black/35 px-5 py-4 sm:min-w-[180px]">
-          <div className="mb-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Zap className="h-3 w-3 text-cyan-400/60" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">
-                Quota
+        {/* Right — quota + stat cards */}
+        <div className="flex shrink-0 flex-col gap-2 sm:min-w-[200px]">
+          {/* Quota */}
+          <div className="rounded-2xl border border-white/[0.07] bg-black/40 px-4 py-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Zap className="h-3 w-3 text-cyan-400/55" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/35">
+                  Quota
+                </span>
+              </div>
+              <span className="font-mono text-[11px] font-semibold text-cyan-300/65">
+                {usageUsed !== undefined
+                  ? `${usageUsed} / ${(usageLimit ?? 0) < 0 ? "∞" : usageLimit}`
+                  : "— / —"}
               </span>
             </div>
-            <span className="font-mono text-[11px] text-cyan-300/75">
-              {usageUsed !== undefined
-                ? `${usageUsed} / ${usageLimit! < 0 ? "∞" : usageLimit}`
-                : "— / —"}
-            </span>
+            <div className="h-[3px] overflow-hidden rounded-full bg-white/[0.06]">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${usagePct}%` }}
+                transition={{ duration: 0.9, ease: "easeOut" }}
+              />
+            </div>
+            <p className="mt-1.5 text-[10px] text-foreground/25">this month</p>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
-            <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
-              initial={{ width: 0 }}
-              animate={{ width: `${usagePct}%` }}
-              transition={{ duration: 0.9, ease: "easeOut" }}
-            />
+          {/* Status pill */}
+          <div className="flex items-center justify-between rounded-xl border border-emerald-400/14 bg-emerald-400/[0.05] px-3 py-2">
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="text-[10px] font-semibold text-emerald-400/80">All systems operational</span>
+            </div>
+            <Activity className="h-3 w-3 text-emerald-400/50" />
           </div>
-          <p className="mt-1.5 text-[10px] text-foreground/28">this month</p>
         </div>
       </div>
+
+      {/* Telemetry row */}
+      <TelemetryRow />
     </div>
   );
 }
@@ -203,9 +384,7 @@ export default function BlueprintPage() {
     },
     refetchInterval: (q) => {
       const items = q.state.data?.reviews ?? [];
-      const pending = items.some((r) =>
-        ["queued", "running"].includes(r.status),
-      );
+      const pending = items.some((r) => ["queued", "running"].includes(r.status));
       return pending ? 2500 : false;
     },
   });
@@ -270,7 +449,7 @@ export default function BlueprintPage() {
     hint: string;
   }[] = [
     { id: "describe", label: "Describe", icon: Sparkles, hint: "Plain language" },
-    { id: "mermaid", label: "Mermaid", icon: Code2, hint: "flowchart / sequenceDiagram" },
+    { id: "mermaid", label: "Mermaid", icon: Code2, hint: "flowchart / sequence" },
     { id: "diagram", label: "Diagram", icon: FileImage, hint: "PNG / JPEG / WebP" },
   ];
 
@@ -287,14 +466,29 @@ export default function BlueprintPage() {
         />
       </FadeIn>
 
+      {/* Capability strip */}
+      <FadeIn delay={0.12}>
+        <CapabilityStrip />
+      </FadeIn>
+
       <div className="grid gap-6 lg:grid-cols-[1fr_296px]">
         {/* ── Composer ─────────────────────────────────────────────────── */}
-        <FadeIn delay={0.08}>
+        <FadeIn delay={0.1}>
           <form onSubmit={onSubmit}>
-            {/* Terminal window */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#060910]">
+            <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[#060910]"
+              style={{
+                animation: submitting ? "none" : "bp-border-breathe 4s ease-in-out infinite",
+              }}
+            >
               {/* Top glow */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/28 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
+              {/* Circuit decoration bottom-right */}
+              <CircuitDecoration />
+              {/* Reticle corners */}
+              <ReticleCorners alpha={0.2} />
+
+              {/* Scanning overlay */}
+              <ScanningOverlay visible={submitting} />
 
               {/* Window chrome */}
               <div className="flex items-center justify-between border-b border-white/[0.05] bg-[#040609]/90 px-5 py-3">
@@ -328,7 +522,7 @@ export default function BlueprintPage() {
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Checkout service · multi-region"
                     maxLength={200}
-                    className="w-full rounded-xl border border-white/[0.07] bg-black/45 px-4 py-3 text-sm text-white placeholder:text-foreground/22 transition focus:border-cyan-400/40 focus:outline-none focus:ring-2 focus:ring-cyan-400/12"
+                    className="w-full rounded-xl border border-white/[0.07] bg-black/45 px-4 py-3 text-sm text-white placeholder:text-foreground/22 transition focus:border-cyan-400/42 focus:outline-none focus:ring-2 focus:ring-cyan-400/12"
                   />
                 </div>
 
@@ -344,226 +538,150 @@ export default function BlueprintPage() {
                           type="button"
                           onClick={() => setTab(t.id)}
                           className={cn(
-                            "group relative flex flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-xs transition",
-                            active
-                              ? "text-cyan-100"
-                              : "text-foreground/38 hover:text-foreground/62",
+                            "group relative flex flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-3 text-xs transition",
+                            active ? "text-cyan-100" : "text-foreground/35 hover:text-foreground/60",
                           )}
                         >
                           {active ? (
                             <motion.span
                               layoutId="bp-tab-pill"
-                              className="absolute inset-0 rounded-lg bg-gradient-to-b from-cyan-500/[0.16] to-cyan-600/[0.04] shadow-inner ring-1 ring-inset ring-cyan-400/22"
-                              transition={{
-                                type: "spring",
-                                bounce: 0.16,
-                                duration: 0.36,
-                              }}
+                              className="absolute inset-0 rounded-lg bg-gradient-to-b from-cyan-500/[0.18] to-cyan-600/[0.04] ring-1 ring-inset ring-cyan-400/24"
+                              transition={{ type: "spring", bounce: 0.15, duration: 0.36 }}
                             />
                           ) : null}
                           <Icon className="relative h-4 w-4" />
-                          <span className="relative hidden text-[10px] font-semibold sm:block">
-                            {t.label}
-                          </span>
-                          <span className="relative hidden text-[9px] text-foreground/28 sm:block">
-                            {t.hint}
-                          </span>
+                          <span className="relative hidden text-[10px] font-semibold sm:block">{t.label}</span>
+                          <span className="relative hidden text-[9px] text-foreground/26 sm:block">{t.hint}</span>
                         </button>
                       );
                     })}
                   </div>
 
                   <AnimatePresence mode="wait">
-                    {/* ── Describe tab ── */}
-                    {tab === "describe" ? (
-                      <motion.div
-                        key="describe"
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.16 }}
-                      >
+                    {tab === "describe" && (
+                      <motion.div key="describe" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
                         <textarea
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           rows={9}
-                          placeholder={`Describe components, data stores, traffic, SLAs…\n\nExample:\n• API gateway → 3 microservices → Postgres\n• Single region, ~10k DAU\n• No message queue; sync AI calls in request path\n• No CDN; static assets served from origin`}
-                          className="w-full resize-y rounded-xl border border-white/[0.07] bg-black/40 px-4 py-3 text-sm leading-relaxed text-foreground/88 placeholder:text-foreground/22 transition focus:border-cyan-400/38 focus:outline-none focus:ring-2 focus:ring-cyan-400/12"
+                          placeholder={`Describe components, data stores, traffic, SLAs…\n\nExample:\n• API gateway → 3 microservices → Postgres\n• Single region, ~10k DAU\n• No message queue; sync AI calls in request path\n• No CDN; static assets from origin`}
+                          className="w-full resize-y rounded-xl border border-white/[0.07] bg-black/40 px-4 py-3 text-sm leading-relaxed text-foreground/88 placeholder:text-foreground/20 transition focus:border-cyan-400/40 focus:outline-none focus:ring-2 focus:ring-cyan-400/12"
                         />
                       </motion.div>
-                    ) : null}
+                    )}
 
-                    {/* ── Mermaid tab ── */}
-                    {tab === "mermaid" ? (
-                      <motion.div
-                        key="mermaid"
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.16 }}
-                      >
-                        <div className="overflow-hidden rounded-xl border border-cyan-400/[0.13] bg-[#030508]">
-                          {/* Editor chrome */}
-                          <div className="flex items-center justify-between border-b border-white/[0.05] bg-[#020406] px-4 py-2.5">
+                    {tab === "mermaid" && (
+                      <motion.div key="mermaid" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
+                        <div className="overflow-hidden rounded-xl border border-cyan-400/[0.13] bg-[#020406]">
+                          <div className="flex items-center justify-between border-b border-white/[0.05] bg-[#010304] px-4 py-2.5">
                             <div className="flex items-center gap-2">
-                              <Code2 className="h-3 w-3 text-cyan-400/60" />
-                              <span className="font-mono text-[10px] text-foreground/32">
-                                diagram.mmd
-                              </span>
+                              <Code2 className="h-3 w-3 text-cyan-400/55" />
+                              <span className="font-mono text-[10px] text-foreground/30">diagram.mmd</span>
                             </div>
-                            <span className="rounded bg-cyan-400/[0.09] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-cyan-400/65">
+                            <span className="rounded bg-cyan-400/[0.09] px-1.5 py-0.5 font-mono text-[9px] font-bold text-cyan-400/65">
                               Mermaid
                             </span>
                           </div>
-                          {/* Line numbers + code area */}
                           <div className="flex">
-                            <div className="select-none border-r border-white/[0.04] bg-black/25 px-3 py-3 text-right font-mono text-[11px] leading-[1.7rem] text-foreground/18">
-                              {Array.from({ length: 10 }, (_, i) => (
-                                <div key={i}>{i + 1}</div>
-                              ))}
+                            <div className="select-none border-r border-white/[0.04] bg-black/30 px-3 py-3 text-right font-mono text-[11px] leading-[1.75rem] text-foreground/16">
+                              {Array.from({ length: 10 }, (_, i) => <div key={i}>{i + 1}</div>)}
                             </div>
                             <textarea
                               value={mermaid}
                               onChange={(e) => setMermaid(e.target.value)}
                               rows={10}
-                              placeholder={
-                                "flowchart LR\n  Client --> API\n  API --> Queue\n  Queue --> Workers\n  Workers --> DB[(Postgres)]"
-                              }
-                              className="flex-1 resize-none bg-transparent px-4 py-3 font-mono text-[13px] leading-[1.7rem] text-cyan-100/82 placeholder:text-foreground/20 focus:outline-none"
+                              placeholder={"flowchart LR\n  Client --> API\n  API --> Queue\n  Queue --> Workers\n  Workers --> DB[(Postgres)]"}
+                              className="flex-1 resize-none bg-transparent px-4 py-3 font-mono text-[13px] leading-[1.75rem] text-cyan-100/80 placeholder:text-foreground/18 focus:outline-none"
                             />
                           </div>
                         </div>
                       </motion.div>
-                    ) : null}
+                    )}
 
-                    {/* ── Diagram tab ── */}
-                    {tab === "diagram" ? (
-                      <motion.div
-                        key="diagram"
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.16 }}
-                      >
+                    {tab === "diagram" && (
+                      <motion.div key="diagram" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
                         <div
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            setDragOver(true);
-                          }}
+                          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                           onDragLeave={() => setDragOver(false)}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            setDragOver(false);
-                            const f = e.dataTransfer.files?.[0];
-                            if (f) void onFile(f);
-                          }}
+                          onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) void onFile(f); }}
                           className={cn(
                             "relative overflow-hidden rounded-xl border-2 border-dashed transition-all duration-200",
-                            dragOver
-                              ? "border-cyan-400/55 bg-cyan-400/[0.07]"
-                              : "border-white/[0.09] bg-black/22 hover:border-cyan-400/28",
+                            dragOver ? "border-cyan-400/55 bg-cyan-400/[0.07]" : "border-white/[0.08] bg-black/20 hover:border-cyan-400/28",
                           )}
                         >
                           {preview ? (
                             <div className="relative p-4">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={preview}
-                                alt="Diagram preview"
-                                className="mx-auto max-h-56 rounded-lg object-contain ring-1 ring-white/[0.08]"
-                              />
+                              <img src={preview} alt="Diagram preview" className="mx-auto max-h-56 rounded-lg object-contain ring-1 ring-white/[0.07]" />
                               <button
                                 type="button"
                                 onClick={() => void onFile(null)}
-                                className="absolute right-5 top-5 rounded-full border border-white/12 bg-black/70 p-1.5 text-white/75 backdrop-blur transition hover:bg-red-500/30 hover:text-red-300"
+                                className="absolute right-5 top-5 rounded-full border border-white/10 bg-black/70 p-1.5 text-white/70 backdrop-blur transition hover:bg-red-500/28 hover:text-red-300"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </button>
-                              <p className="mt-2 truncate text-center font-mono text-[11px] text-foreground/32">
-                                {file?.name}
-                              </p>
+                              <p className="mt-2 truncate text-center font-mono text-[11px] text-foreground/30">{file?.name}</p>
                             </div>
                           ) : (
-                            <label className="flex cursor-pointer flex-col items-center gap-4 px-4 py-14">
-                              {/* Radar rings drop indicator */}
-                              <div className="relative flex h-16 w-16 items-center justify-center">
-                                <div className="blueprint-radar absolute inset-0 rounded-full border border-cyan-400/28" />
-                                <div className="blueprint-radar-delay absolute inset-0 rounded-full border border-cyan-400/16" />
-                                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/25 bg-cyan-400/[0.06]">
-                                  <Upload className="h-5 w-5 text-cyan-300/80" />
+                            <label className="flex cursor-pointer flex-col items-center gap-4 px-4 py-16">
+                              <div className="relative flex h-20 w-20 items-center justify-center">
+                                <div className="blueprint-radar absolute inset-0 rounded-full border border-cyan-400/26" />
+                                <div className="blueprint-radar-delay absolute inset-0 scale-[0.7] rounded-full border border-cyan-400/16" />
+                                <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-400/22 bg-cyan-400/[0.05]">
+                                  <Upload className="h-6 w-6 text-cyan-300/75" />
                                 </div>
                               </div>
                               <div className="text-center">
-                                <p className="text-sm font-semibold text-white/88">
-                                  Drop architecture diagram
-                                </p>
-                                <p className="mt-1 text-xs text-foreground/35">
-                                  PNG, JPEG, or WebP · up to 8 MB
-                                </p>
+                                <p className="text-sm font-semibold text-white/85">Drop architecture diagram</p>
+                                <p className="mt-1 text-xs text-foreground/32">PNG, JPEG, or WebP · up to 8 MB</p>
                               </div>
-                              <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp,image/gif"
-                                className="hidden"
-                                onChange={(e) =>
-                                  void onFile(e.target.files?.[0] ?? null)
-                                }
-                              />
+                              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => void onFile(e.target.files?.[0] ?? null)} />
                             </label>
                           )}
                         </div>
                       </motion.div>
-                    ) : null}
+                    )}
                   </AnimatePresence>
                 </div>
 
-                {/* Context notes (non-describe tabs) */}
-                {tab !== "describe" ? (
+                {/* Context notes */}
+                {tab !== "describe" && (
                   <div>
                     <label className="mb-2 flex items-center gap-2">
                       <span className="font-mono text-[9px] text-cyan-400/55">OPT://</span>
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">
-                        Context notes
-                      </span>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">Context notes</span>
                     </label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={3}
                       placeholder="Optional context alongside your diagram or code…"
-                      className="w-full resize-y rounded-xl border border-white/[0.07] bg-black/40 px-4 py-3 text-sm text-foreground/88 placeholder:text-foreground/22 transition focus:border-cyan-400/38 focus:outline-none focus:ring-2 focus:ring-cyan-400/12"
+                      className="w-full resize-y rounded-xl border border-white/[0.07] bg-black/40 px-4 py-3 text-sm text-foreground/88 placeholder:text-foreground/20 transition focus:border-cyan-400/38 focus:outline-none focus:ring-2 focus:ring-cyan-400/12"
                     />
                   </div>
-                ) : null}
+                )}
 
                 {/* Error */}
-                {error ? (
-                  <div className="rounded-xl border border-red-500/28 bg-red-500/[0.07] px-4 py-3 text-sm text-red-300">
+                {error && (
+                  <div className="rounded-xl border border-red-500/26 bg-red-500/[0.07] px-4 py-3 text-sm text-red-300">
                     {error}{" "}
-                    {error.includes("Upgrade") ? (
-                      <Link
-                        href="/app/billing"
-                        className="font-medium underline underline-offset-2 transition hover:text-red-200"
-                      >
+                    {error.includes("Upgrade") && (
+                      <Link href="/app/billing" className="font-medium underline underline-offset-2 transition hover:text-red-200">
                         Open billing →
                       </Link>
-                    ) : null}
+                    )}
                   </div>
-                ) : null}
+                )}
 
-                {/* Submit row */}
-                <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-[11px] text-foreground/28">
-                    Powered by DeepSeek · typically under 60 s
-                  </p>
+                {/* Submit */}
+                <div className="pt-1">
                   <div className="relative">
-                    {/* Rotating gradient border when idle */}
+                    {/* Rotating conic border */}
                     {!submitting && (
                       <div
-                        className="absolute -inset-[2px] rounded-xl opacity-70"
+                        className="absolute -inset-[2px] rounded-xl opacity-65"
                         style={{
-                          background:
-                            "conic-gradient(from var(--bp-angle, 0deg), #22d3ee, #3b82f6, #8b5cf6, #22d3ee)",
+                          background: "conic-gradient(from var(--bp-angle, 0deg), #22d3ee, #3b82f6, #8b5cf6, #22d3ee)",
                           animation: "bp-conic-spin 3s linear infinite",
                         }}
                       />
@@ -572,7 +690,7 @@ export default function BlueprintPage() {
                       type="submit"
                       disabled={submitting}
                       size="lg"
-                      className="relative z-10 min-w-[210px] border-0 bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-500"
+                      className="relative z-10 w-full border-0 bg-gradient-to-r from-cyan-500 to-blue-600 py-6 text-base font-bold text-slate-950 shadow-xl shadow-cyan-500/18 hover:from-cyan-400 hover:to-blue-500"
                     >
                       {submitting ? (
                         <>
@@ -581,28 +699,30 @@ export default function BlueprintPage() {
                         </>
                       ) : (
                         <>
-                          <Sparkles className="h-4 w-4" />
-                          Run Blueprint review
+                          <Sparkles className="h-5 w-5" />
+                          Run Blueprint Review
                         </>
                       )}
                     </Button>
                   </div>
+                  <p className="mt-2.5 text-center text-[11px] text-foreground/26">
+                    Powered by DeepSeek · results typically in under 60 s
+                  </p>
                 </div>
               </div>
             </div>
           </form>
         </FadeIn>
 
-        {/* ── Mission Log sidebar ──────────────────────────────────────── */}
-        <FadeIn delay={0.14} className="min-w-0">
-          {/* Section header */}
+        {/* ── Mission Log ──────────────────────────────────────────────── */}
+        <FadeIn delay={0.16} className="min-w-0">
           <div className="mb-3 flex items-center gap-2">
             <span className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-cyan-400/55">
               SYS:LOG
             </span>
-            <div className="h-px flex-1 bg-gradient-to-r from-cyan-400/18 to-transparent" />
+            <div className="h-px flex-1 bg-gradient-to-r from-cyan-400/16 to-transparent" />
             {history.data?.reviews.length ? (
-              <span className="font-mono text-[10px] text-foreground/28">
+              <span className="font-mono text-[10px] text-foreground/25">
                 {history.data.reviews.length} sessions
               </span>
             ) : null}
@@ -611,43 +731,42 @@ export default function BlueprintPage() {
           <div className="space-y-2">
             {history.isLoading ? (
               <div className="rounded-2xl border border-white/[0.06] bg-[#060910] px-4 py-10 text-center">
-                <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-cyan-400/45" />
-                <p className="text-xs text-foreground/32">Loading sessions…</p>
+                <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-cyan-400/40" />
+                <p className="text-xs text-foreground/30">Loading sessions…</p>
               </div>
             ) : history.isError ? (
-              <div className="rounded-2xl border border-amber-500/22 bg-amber-500/[0.05] px-4 py-6 text-center text-xs text-amber-300/75">
-                {history.error instanceof Error
-                  ? history.error.message
-                  : "Could not load history"}
+              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] px-4 py-6 text-center text-xs text-amber-300/70">
+                {history.error instanceof Error ? history.error.message : "Could not load history"}
               </div>
             ) : !history.data?.reviews.length ? (
-              <div className="rounded-2xl border border-dashed border-white/[0.07] bg-[#060910]/60 px-4 py-14 text-center">
-                <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center">
-                  <div className="blueprint-radar absolute inset-0 rounded-full border border-cyan-400/22" />
-                  <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/[0.05]">
-                    <Layers className="h-5 w-5 text-cyan-400/45" />
+              <div className="rounded-2xl border border-dashed border-white/[0.07] bg-[#060910]/55 px-4 py-14 text-center">
+                <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center">
+                  <div className="blueprint-radar absolute inset-0 rounded-full border border-cyan-400/20" />
+                  <div className="blueprint-radar-delay absolute inset-0 scale-[0.65] rounded-full border border-cyan-400/12" />
+                  <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/18 bg-cyan-400/[0.05]">
+                    <Layers className="h-5 w-5 text-cyan-400/40" />
                   </div>
                 </div>
-                <p className="text-xs font-medium text-foreground/38">No scans yet</p>
-                <p className="mt-1 text-[11px] text-foreground/20">
-                  Your first review appears here.
-                </p>
+                <p className="text-xs font-semibold text-foreground/35">No scans yet</p>
+                <p className="mt-1 text-[11px] text-foreground/18">Your first review appears here.</p>
               </div>
             ) : (
               history.data.reviews.map((r, i) => {
                 const pending = ["queued", "running"].includes(r.status);
+                const succeeded = r.status === "succeeded";
+                const failed = r.status === "failed";
 
-                const statusStyle = r.status === "succeeded"
-                  ? "text-emerald-400 bg-emerald-400/[0.09] ring-1 ring-emerald-400/20"
-                  : r.status === "failed"
-                    ? "text-red-400 bg-red-400/[0.09] ring-1 ring-red-400/20"
-                    : "animate-pulse text-cyan-400 bg-cyan-400/[0.09] ring-1 ring-cyan-400/20";
+                const statusPill = succeeded
+                  ? "text-emerald-400 bg-emerald-400/[0.08] ring-1 ring-emerald-400/18"
+                  : failed
+                    ? "text-red-400 bg-red-400/[0.08] ring-1 ring-red-400/18"
+                    : "animate-pulse text-cyan-400 bg-cyan-400/[0.08] ring-1 ring-cyan-400/18";
 
-                const leftBorder = r.status === "succeeded"
-                  ? "border-l-emerald-500/50"
-                  : r.status === "failed"
-                    ? "border-l-red-500/45"
-                    : "border-l-cyan-400/55";
+                const leftBorder = succeeded
+                  ? "border-l-emerald-500/45"
+                  : failed
+                    ? "border-l-red-500/40"
+                    : "border-l-cyan-400/50";
 
                 return (
                   <motion.div
@@ -656,56 +775,46 @@ export default function BlueprintPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.04 * i, duration: 0.32 }}
                   >
-                    <Link
-                      href={`/app/blueprint/${r.id}`}
-                      className="group block"
-                    >
+                    <Link href={`/app/blueprint/${r.id}`} className="group block">
                       <div
                         className={cn(
-                          "relative overflow-hidden rounded-xl border border-l-2 border-white/[0.06] bg-[#060910] p-3.5 transition-all duration-200 group-hover:border-white/[0.11] group-hover:bg-white/[0.025]",
+                          "relative overflow-hidden rounded-xl border border-l-2 border-white/[0.06] bg-[#060910] p-3.5 transition-all duration-200 group-hover:border-white/[0.1] group-hover:bg-white/[0.022]",
                           leftBorder,
                         )}
                       >
                         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
 
+                        {/* Scan line on succeeded cards */}
+                        {succeeded && (
+                          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl opacity-40">
+                            <div className="blueprint-scan-beam absolute inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
+                          </div>
+                        )}
+
                         <div className="flex items-start gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13px] font-semibold text-white/82 transition group-hover:text-white">
+                            <p className="truncate text-[13px] font-semibold text-white/80 transition group-hover:text-white">
                               {r.title || "Untitled scan"}
                             </p>
-                            <p className="mt-0.5 truncate text-[11px] text-foreground/35">
+                            <p className="mt-0.5 truncate text-[11px] text-foreground/33">
                               {r.descriptionPreview || "Architecture review"}
                             </p>
                           </div>
-                          {r.scores?.overall != null ? (
-                            <MiniScore value={r.scores.overall} />
-                          ) : null}
+                          {r.scores?.overall != null && <MiniScore value={r.scores.overall} />}
                         </div>
 
                         <div className="mt-3 flex items-center justify-between">
-                          <span className="font-mono text-[10px] text-foreground/25">
-                            {new Date(r.createdAt).toLocaleDateString(
-                              undefined,
-                              {
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )}
+                          <span className="font-mono text-[10px] text-foreground/22">
+                            {new Date(r.createdAt).toLocaleDateString(undefined, {
+                              month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+                            })}
                           </span>
-                          <span
-                            className={cn(
-                              "rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider",
-                              statusStyle,
-                            )}
-                          >
+                          <span className={cn("rounded-full px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider", statusPill)}>
                             {pending ? "scanning" : r.status}
                           </span>
                         </div>
 
-                        {/* Hover arrow */}
-                        <ChevronRight className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-foreground/18 opacity-0 transition group-hover:opacity-100" />
+                        <ChevronRight className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-foreground/16 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
                       </div>
                     </Link>
                   </motion.div>
@@ -716,7 +825,6 @@ export default function BlueprintPage() {
         </FadeIn>
       </div>
 
-      {/* CSS for conic-gradient spin on submit button */}
       <style>{`
         @property --bp-angle {
           syntax: "<angle>";
@@ -725,6 +833,10 @@ export default function BlueprintPage() {
         }
         @keyframes bp-conic-spin {
           to { --bp-angle: 360deg; }
+        }
+        @keyframes bp-border-breathe {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(34,211,238,0); }
+          50% { box-shadow: 0 0 22px 2px rgba(34,211,238,0.055); }
         }
       `}</style>
     </div>
