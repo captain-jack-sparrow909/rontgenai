@@ -1,5 +1,8 @@
 import { getSupabase } from "../supabase.js";
-import { runRadarInvestigation } from "./investigate.js";
+import {
+  runRadarInvestigation,
+  type RadarOperationsContext,
+} from "./investigate.js";
 import type { LogSignalSummary } from "./parse.js";
 
 export async function processRadarInvestigation(jobId: string): Promise<void> {
@@ -27,6 +30,7 @@ export async function processRadarInvestigation(jobId: string): Promise<void> {
       description?: string;
       metricsNotes?: string;
       summary?: LogSignalSummary;
+      operationsContext?: RadarOperationsContext;
     };
 
     if (!input.summary) throw new Error("Missing log signal summary");
@@ -36,6 +40,7 @@ export async function processRadarInvestigation(jobId: string): Promise<void> {
         title: input.title,
         description: input.description,
         metricsNotes: input.metricsNotes,
+        operationsContext: input.operationsContext,
         summary: input.summary,
       });
 

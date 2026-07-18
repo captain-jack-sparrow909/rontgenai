@@ -132,7 +132,7 @@ function BillingInner() {
             </span>
           </h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-foreground/40">
-            One suite subscription · all six live products · payments via Paddle
+            One suite subscription · all seven live products · payments via Paddle
           </p>
 
           {/* Live plan status */}

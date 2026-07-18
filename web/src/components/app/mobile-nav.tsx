@@ -17,6 +17,7 @@ const SLUG_RGB: Record<string, string> = {
   sentinel:  "251,191,36",
   forge:     "251,113,133",
   radar:     "248,113,113",
+  relay:     "129,140,248",
 };
 
 export function MobileNav() {

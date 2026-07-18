@@ -8,11 +8,14 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  AlertTriangle,
   CheckSquare,
   ClipboardCopy,
   Crosshair,
+  GitCompareArrows,
   Loader2,
   Radar as RadarIcon,
+  RotateCcw,
   Siren,
   Zap,
 } from "lucide-react";
@@ -269,6 +272,28 @@ export default function RadarDetailPage() {
                 </RadarFade>
               ) : null}
 
+              {report.operational_correlations?.length ? (
+                <RadarFade delay={0.13}>
+                  <RadarLabel index="OC">Operational correlations</RadarLabel>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {report.operational_correlations.map((correlation, index) => (
+                      <RadarGlass key={`${index}-${correlation.signal}`} className="p-4">
+                        <div className="flex items-start gap-2">
+                          <GitCompareArrows className="mt-0.5 h-4 w-4 shrink-0 text-red-300/70" />
+                          <div>
+                            <p className="text-sm font-medium text-white/85">{correlation.signal}</p>
+                            <p className="mt-1 text-xs text-red-100/55">Related change · {correlation.related_change}</p>
+                          </div>
+                          <span className="ml-auto shrink-0 rounded-full border border-red-400/20 px-2 py-0.5 text-[9px] uppercase text-red-200/60">{correlation.confidence}</span>
+                        </div>
+                        {correlation.evidence.length ? <ul className="mt-3 space-y-1">{correlation.evidence.map((evidence, evidenceIndex) => <li key={`${evidenceIndex}-${evidence}`} className="flex gap-2 text-xs text-foreground/45"><Crosshair className="mt-0.5 h-3 w-3 shrink-0 text-red-400/50" />{evidence}</li>)}</ul> : null}
+                      </RadarGlass>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[10px] text-foreground/30">Temporal correlation is evidence, not proof of causation.</p>
+                </RadarFade>
+              ) : null}
+
               <RadarFade delay={0.14}>
                 <RadarLabel index="03">
                   Likely causes · {report.likely_causes.length}
@@ -310,6 +335,37 @@ export default function RadarDetailPage() {
                   </RadarGlass>
                 </RadarFade>
               </div>
+
+              {report.safe_remediations?.length ? (
+                <RadarFade delay={0.19}>
+                  <RadarLabel index="SR">Safe remediation plan</RadarLabel>
+                  <div className="space-y-3">
+                    {report.safe_remediations.map((remediation, index) => (
+                      <RadarGlass key={`${index}-${remediation.action}`} className="p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="flex gap-2"><Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-400/75" /><div><p className="text-sm font-medium text-white/85">{remediation.action}</p><p className="mt-1 text-xs text-foreground/50">{remediation.rationale}</p></div></div>
+                          <span className={cn("rounded-full border px-2 py-0.5 text-[9px] uppercase", remediation.risk === "high" ? "border-red-400/25 text-red-300/70" : remediation.risk === "low" ? "border-emerald-400/25 text-emerald-300/70" : "border-amber-400/25 text-amber-300/70")}>{remediation.risk} risk</span>
+                        </div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <div className="rounded-lg border border-white/5 bg-black/15 p-3 text-xs text-foreground/50"><strong className="text-foreground/65">Validate:</strong> {remediation.validation}</div>
+                          <div className="flex gap-2 rounded-lg border border-white/5 bg-black/15 p-3 text-xs text-foreground/50"><RotateCcw className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-300/65" /><span><strong className="text-foreground/65">Rollback:</strong> {remediation.rollback}</span></div>
+                        </div>
+                      </RadarGlass>
+                    ))}
+                  </div>
+                </RadarFade>
+              ) : null}
+
+              {report.approval_required?.length ? (
+                <RadarFade delay={0.195}>
+                  <RadarGlass className="border-amber-400/20 bg-amber-400/[0.04] p-4">
+                    <div className="flex gap-3">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400/75" />
+                      <div><p className="text-sm font-medium text-amber-100/80">Human approval required</p><p className="mt-1 text-xs text-foreground/45">Radar has not executed these production changes.</p><ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-100/60">{report.approval_required.map((action, index) => <li key={`${index}-${action}`}>{action}</li>)}</ul></div>
+                    </div>
+                  </RadarGlass>
+                </RadarFade>
+              ) : null}
 
               <RadarFade delay={0.2}>
                 <RadarLabel index="PM">Postmortem draft</RadarLabel>

@@ -8,9 +8,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
+  BellRing,
+  Boxes,
   ChevronRight,
   FileText,
   Loader2,
+  Rocket,
   Radar as RadarIcon,
   Upload,
   X,
@@ -205,6 +208,10 @@ export default function RadarPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [metricsNotes, setMetricsNotes] = useState("");
+  const [deploymentContext, setDeploymentContext] = useState("");
+  const [infrastructureChanges, setInfrastructureChanges] = useState("");
+  const [alerts, setAlerts] = useState("");
+  const [serviceTopology, setServiceTopology] = useState("");
   const [logs, setLogs] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -237,8 +244,9 @@ export default function RadarPage() {
     async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
-      if (!logs.trim() && !file) {
-        setError("Paste logs or upload a log file");
+      const hasOperationsContext = [deploymentContext, infrastructureChanges, alerts, serviceTopology].some((value) => value.trim());
+      if (!logs.trim() && !file && !hasOperationsContext) {
+        setError("Provide logs or operational context");
         return;
       }
       setSubmitting(true);
@@ -260,6 +268,14 @@ export default function RadarPage() {
           logs: logs.trim() || undefined,
           logBase64,
           filename,
+          operationsContext: hasOperationsContext
+            ? {
+                deployment: deploymentContext.trim() || undefined,
+                infrastructureChanges: infrastructureChanges.trim() || undefined,
+                alerts: alerts.trim() || undefined,
+                serviceTopology: serviceTopology.trim() || undefined,
+              }
+            : undefined,
         });
 
         await queryClient.invalidateQueries({ queryKey: ["radar-investigations"] });
@@ -275,7 +291,7 @@ export default function RadarPage() {
         setSubmitting(false);
       }
     },
-    [description, file, getToken, logs, metricsNotes, queryClient, router, title],
+    [alerts, deploymentContext, description, file, getToken, infrastructureChanges, logs, metricsNotes, queryClient, router, serviceTopology, title],
   );
 
   return (
@@ -342,6 +358,7 @@ export default function RadarPage() {
                         <RadarIcon className="h-7 w-7 text-slate-950" />
                       </span>
                     </div>
+
                     <div>
                       <h1
                         className="bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl"
@@ -478,9 +495,36 @@ export default function RadarPage() {
                     </div>
 
                     {/* Logs — terminal chrome */}
+                    <div className="rounded-xl border border-red-400/10 bg-red-400/[0.025] p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <Boxes className="h-3.5 w-3.5 text-red-300/65" />
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-foreground/40">Operations context</p>
+                        <span className="text-[9px] text-foreground/22">optional when logs are supplied</span>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-foreground/35"><Rocket className="h-3 w-3" /> Deployments</label>
+                          <textarea value={deploymentContext} onChange={(e) => setDeploymentContext(e.target.value)} rows={3} placeholder="Version, time, changes, rollout status…" className="w-full resize-y rounded-lg border border-white/[0.07] bg-black/30 px-3 py-2 text-xs text-white placeholder:text-foreground/22 focus:border-red-400/35 focus:outline-none" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-foreground/35"><Boxes className="h-3 w-3" /> Infrastructure changes</label>
+                          <textarea value={infrastructureChanges} onChange={(e) => setInfrastructureChanges(e.target.value)} rows={3} placeholder="Terraform plan, scaling, networking, config…" className="w-full resize-y rounded-lg border border-white/[0.07] bg-black/30 px-3 py-2 text-xs text-white placeholder:text-foreground/22 focus:border-red-400/35 focus:outline-none" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-foreground/35"><BellRing className="h-3 w-3" /> Alerts</label>
+                          <textarea value={alerts} onChange={(e) => setAlerts(e.target.value)} rows={3} placeholder="Alert name, firing time, threshold, affected service…" className="w-full resize-y rounded-lg border border-white/[0.07] bg-black/30 px-3 py-2 text-xs text-white placeholder:text-foreground/22 focus:border-red-400/35 focus:outline-none" />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-foreground/35"><Activity className="h-3 w-3" /> Service topology</label>
+                          <textarea value={serviceTopology} onChange={(e) => setServiceTopology(e.target.value)} rows={3} placeholder="checkout → payments → database…" className="w-full resize-y rounded-lg border border-white/[0.07] bg-black/30 px-3 py-2 text-xs text-white placeholder:text-foreground/22 focus:border-red-400/35 focus:outline-none" />
+                        </div>
+                      </div>
+                      <p className="mt-3 text-[10px] leading-relaxed text-red-100/35">Radar correlates these signals but does not treat timing alone as proof of causation or execute remediation.</p>
+                    </div>
+
                     <div>
                       <label className="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.18em] text-foreground/35">
-                        Logs
+                        Logs <span className="normal-case tracking-normal text-foreground/22">(optional with operations context)</span>
                       </label>
                       <div className="overflow-hidden rounded-xl border border-white/[0.08]" style={{ background: "#06030a" }}>
                         {/* terminal titlebar */}

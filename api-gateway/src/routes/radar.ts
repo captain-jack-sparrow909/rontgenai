@@ -7,6 +7,7 @@ import { recordUsage } from "../lib/usage.js";
 import { isR2Configured, putObject } from "../lib/r2.js";
 import { randomUUID } from "node:crypto";
 import {
+  emptyLogSignalSummary,
   parseBase64Log,
   parseLogText,
 } from "../lib/radar/parse.js";
@@ -22,9 +23,27 @@ const createSchema = z
     /** Base64 or data URL log file */
     logBase64: z.string().max(3_500_000).optional(),
     filename: z.string().max(200).optional(),
+    operationsContext: z
+      .object({
+        deployment: z.string().trim().max(8000).optional(),
+        infrastructureChanges: z.string().trim().max(8000).optional(),
+        alerts: z.string().trim().max(8000).optional(),
+        serviceTopology: z.string().trim().max(8000).optional(),
+      })
+      .optional(),
   })
-  .refine((v) => Boolean(v.logs?.trim()) || Boolean(v.logBase64), {
-    message: "Provide logs text or a log file",
+  .refine((v) => {
+    const operations = v.operationsContext;
+    return (
+      Boolean(v.logs?.trim()) ||
+      Boolean(v.logBase64) ||
+      Boolean(
+        operations &&
+          Object.values(operations).some((value) => value?.trim()),
+      )
+    );
+  }, {
+    message: "Provide logs or operational context",
   });
 
 export const radarRoutes: FastifyPluginAsync = async (app) => {
@@ -69,7 +88,9 @@ export const radarRoutes: FastifyPluginAsync = async (app) => {
       } else {
         logText = parsed.data.logs ?? "";
       }
-      const { summary } = parseLogText(logText);
+      const summary = logText.trim()
+        ? parseLogText(logText).summary
+        : emptyLogSignalSummary();
 
       let r2Key: string | null = null;
       if (isR2Configured() && logText.length > 0) {
@@ -102,6 +123,7 @@ export const radarRoutes: FastifyPluginAsync = async (app) => {
             title: parsed.data.title ?? "Incident investigation",
             description: parsed.data.description ?? null,
             metricsNotes: parsed.data.metricsNotes ?? null,
+            operationsContext: parsed.data.operationsContext ?? null,
             r2_key: r2Key,
             filename: parsed.data.filename ?? null,
             summary,
@@ -229,6 +251,7 @@ export const radarRoutes: FastifyPluginAsync = async (app) => {
         title: input.title,
         description: input.description,
         metricsNotes: input.metricsNotes,
+        operationsContext: input.operationsContext,
         logExcerpt: input.logExcerpt,
         signals: summary
           ? {

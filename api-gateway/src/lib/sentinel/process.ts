@@ -11,6 +11,7 @@ import {
   runSentinelReview,
   toGithubEvent,
   type SentinelReviewResult,
+  type SentinelReviewFocus,
 } from "./review.js";
 
 export async function processSentinelReview(
@@ -41,6 +42,8 @@ export async function processSentinelReview(
       snapshot?: PrSnapshot;
       postToGithub?: boolean;
       autoApprove?: boolean;
+      reviewFocus?: SentinelReviewFocus;
+      securityContext?: string;
     };
 
     let snapshot = input.snapshot;
@@ -50,18 +53,25 @@ export async function processSentinelReview(
     if (!snapshot) throw new Error("Missing PR snapshot");
 
     const { review, model, promptTokens, completionTokens } =
-      await runSentinelReview(snapshot);
+      await runSentinelReview(snapshot, {
+        focus: input.reviewFocus,
+        securityContext: input.securityContext,
+      });
 
     let githubReview: { reviewId: number; htmlUrl?: string } | null = null;
     let postError: string | null = null;
 
     if (input.postToGithub !== false) {
       try {
-        const event = toGithubEvent(review.verdict, Boolean(input.autoApprove));
+        const event = toGithubEvent(
+          review.verdict,
+          input.reviewFocus !== "security" && Boolean(input.autoApprove),
+        );
         githubReview = await submitPullRequestReview(octokit, snapshot.ref, {
           event,
           body: reviewBodyMarkdown(review, {
-            autoApprove: Boolean(input.autoApprove),
+            autoApprove:
+              input.reviewFocus !== "security" && Boolean(input.autoApprove),
           }),
           comments: review.findings
             .filter((f) => f.path && f.line)

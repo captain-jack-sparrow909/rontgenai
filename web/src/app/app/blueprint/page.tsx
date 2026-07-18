@@ -10,6 +10,8 @@ import {
   Activity,
   ChevronRight,
   Code2,
+  Coins,
+  FileSpreadsheet,
   FileImage,
   Layers,
   Loader2,
@@ -345,6 +347,10 @@ export default function BlueprintPage() {
   const { data: me } = useMe();
 
   const [title, setTitle] = useState("");
+  const [reviewMode, setReviewMode] = useState<"architecture" | "cost">("architecture");
+  const [cloudInventory, setCloudInventory] = useState("");
+  const [billingSummary, setBillingSummary] = useState("");
+  const [optimizationConstraints, setOptimizationConstraints] = useState("");
   const [description, setDescription] = useState("");
   const [mermaid, setMermaid] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -409,6 +415,10 @@ export default function BlueprintPage() {
           imageBase64,
           imageContentType,
           filename,
+          reviewMode,
+          cloudInventory: reviewMode === "cost" ? cloudInventory.trim() || undefined : undefined,
+          billingSummary: reviewMode === "cost" ? billingSummary.trim() || undefined : undefined,
+          optimizationConstraints: reviewMode === "cost" ? optimizationConstraints.trim() || undefined : undefined,
         });
 
         await queryClient.invalidateQueries({ queryKey: ["blueprint-reviews"] });
@@ -424,7 +434,7 @@ export default function BlueprintPage() {
         setSubmitting(false);
       }
     },
-    [description, file, getToken, mermaid, queryClient, router, title],
+    [billingSummary, cloudInventory, description, file, getToken, mermaid, optimizationConstraints, queryClient, reviewMode, router, title],
   );
 
   const tabs: {
@@ -483,23 +493,34 @@ export default function BlueprintPage() {
               </div>
 
               <div className="space-y-5 p-5 sm:p-6">
+                <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.06] bg-black/35 p-1.5">
+                  {([
+                    { mode: "architecture" as const, label: "Architecture review", Icon: Layers },
+                    { mode: "cost" as const, label: "Cloud cost review", Icon: Coins },
+                  ]).map(({ mode, label, Icon }) => (
+                    <button key={mode} type="button" onClick={() => setReviewMode(mode)} className={cn("flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition", reviewMode === mode ? "border-cyan-400/25 bg-cyan-400/[0.09] text-cyan-100" : "border-transparent text-foreground/35 hover:text-foreground/60")}>
+                      <Icon className="h-3.5 w-3.5" />{label}
+                    </button>
+                  ))}
+                </div>
+
                 {/* System name */}
                 <div>
                   <label className="mb-2 flex items-center gap-2">
                     <span className="font-mono text-[9px] text-cyan-400/55">SYS://</span>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">System name</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">{reviewMode === "cost" ? "Cloud estate" : "System name"}</span>
                   </label>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Checkout service · multi-region"
+                    placeholder={reviewMode === "cost" ? "e.g. Production AWS estate · July" : "e.g. Checkout service · multi-region"}
                     maxLength={200}
                     className="w-full rounded-xl border border-white/[0.07] bg-black/45 px-4 py-3 text-sm text-white placeholder:text-foreground/22 transition focus:border-cyan-400/42 focus:outline-none focus:ring-2 focus:ring-cyan-400/12"
                   />
                 </div>
 
                 {/* Input-mode tabs */}
-                <div>
+                <div className={reviewMode === "cost" ? "hidden" : undefined}>
                   <div className="mb-4 flex gap-1 overflow-hidden rounded-xl border border-white/[0.06] bg-black/45 p-1">
                     {tabs.map((t) => {
                       const Icon = t.icon;
@@ -615,7 +636,7 @@ export default function BlueprintPage() {
                 </div>
 
                 {/* Context notes */}
-                {tab !== "describe" && (
+                {reviewMode === "architecture" && tab !== "describe" && (
                   <div>
                     <label className="mb-2 flex items-center gap-2">
                       <span className="font-mono text-[9px] text-cyan-400/55">OPT://</span>
@@ -630,6 +651,26 @@ export default function BlueprintPage() {
                     />
                   </div>
                 )}
+
+                {reviewMode === "cost" ? (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/[0.025] p-4">
+                      <div className="mb-3 flex items-center gap-2"><FileSpreadsheet className="h-4 w-4 text-cyan-300/65" /><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/45">Read-only cost evidence</p></div>
+                      <div className="space-y-3">
+                        <div>
+                          <div className="mb-1.5 flex items-center justify-between gap-3"><label className="text-[9px] font-semibold uppercase tracking-wider text-foreground/35">Cloud inventory / utilization</label><label className="cursor-pointer text-[9px] text-cyan-300/60 hover:text-cyan-200"><input type="file" accept=".csv,.json,.txt,.tsv,text/plain,application/json,text/csv" className="hidden" onChange={(e) => { const selected = e.target.files?.[0]; if (selected) void selected.text().then(setCloudInventory); }} />Upload CSV / JSON / text</label></div>
+                          <textarea value={cloudInventory} onChange={(e) => setCloudInventory(e.target.value)} rows={7} placeholder="Resource inventory, instance sizes, utilization, storage, tags…" className="w-full resize-y rounded-lg border border-white/[0.07] bg-black/35 px-3 py-2.5 font-mono text-xs text-cyan-100/75 placeholder:text-foreground/20 focus:border-cyan-400/35 focus:outline-none" />
+                        </div>
+                        <div>
+                          <div className="mb-1.5 flex items-center justify-between gap-3"><label className="text-[9px] font-semibold uppercase tracking-wider text-foreground/35">Billing / usage export</label><label className="cursor-pointer text-[9px] text-cyan-300/60 hover:text-cyan-200"><input type="file" accept=".csv,.json,.txt,.tsv,text/plain,application/json,text/csv" className="hidden" onChange={(e) => { const selected = e.target.files?.[0]; if (selected) void selected.text().then(setBillingSummary); }} />Upload CSV / JSON / text</label></div>
+                          <textarea value={billingSummary} onChange={(e) => setBillingSummary(e.target.value)} rows={7} placeholder="Service, resource, region, date, usage quantity, cost, currency…" className="w-full resize-y rounded-lg border border-white/[0.07] bg-black/35 px-3 py-2.5 font-mono text-xs text-cyan-100/75 placeholder:text-foreground/20 focus:border-cyan-400/35 focus:outline-none" />
+                        </div>
+                        <div><label className="mb-1.5 block text-[9px] font-semibold uppercase tracking-wider text-foreground/35">Constraints and architecture context</label><textarea value={optimizationConstraints} onChange={(e) => setOptimizationConstraints(e.target.value)} rows={3} placeholder="SLOs, reserved capacity, compliance, growth plans, resources that cannot change…" className="w-full resize-y rounded-lg border border-white/[0.07] bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-foreground/20 focus:border-cyan-400/35 focus:outline-none" /></div>
+                      </div>
+                      <p className="mt-3 text-[10px] text-cyan-100/35">Blueprint does not connect to or modify cloud resources. Savings remain null when the supplied evidence cannot support an estimate.</p>
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Error */}
                 {error && (
@@ -665,12 +706,12 @@ export default function BlueprintPage() {
                       {submitting ? (
                         <>
                           <Loader2 className="animate-spin" />
-                          Initializing scan…
+                          {reviewMode === "cost" ? "Analyzing spend…" : "Initializing scan…"}
                         </>
                       ) : (
                         <>
                           <Sparkles className="h-4 w-4 opacity-70" />
-                          Run Blueprint Review
+                          {reviewMode === "cost" ? "Run Cloud Cost Review" : "Run Blueprint Review"}
                         </>
                       )}
                     </Button>
@@ -761,6 +802,7 @@ export default function BlueprintPage() {
                             <p className="truncate text-[13px] font-semibold text-white/80 transition group-hover:text-white">
                               {r.title || "Untitled scan"}
                             </p>
+                            {r.reviewMode === "cost" ? <span className="mt-1 inline-flex rounded bg-cyan-400/[0.09] px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-cyan-300/65">Cost</span> : null}
                             <p className="mt-0.5 truncate text-[11px] text-foreground/33">
                               {r.descriptionPreview || "Architecture review"}
                             </p>

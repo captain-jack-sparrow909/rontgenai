@@ -19,6 +19,7 @@ const PRODUCTS: ProductId[] = [
   "sentinel",
   "forge",
   "radar",
+  "relay",
 ];
 
 function startOfMonthUtc(d = new Date()): string {

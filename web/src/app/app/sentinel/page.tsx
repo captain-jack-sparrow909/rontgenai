@@ -12,10 +12,10 @@ import {
   ExternalLink,
   GitPullRequest,
   Loader2,
+  LockKeyhole,
   Settings2,
   Shield,
   ShieldCheck,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import {
@@ -246,6 +246,8 @@ function SentinelInner() {
   const [prUrl, setPrUrl] = useState("");
   const [postToGithub, setPostToGithub] = useState(true);
   const [autoApprove, setAutoApprove] = useState(false);
+  const [reviewFocus, setReviewFocus] = useState<"general" | "security">("general");
+  const [securityContext, setSecurityContext] = useState("");
   const [installationId, setInstallationId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -329,6 +331,11 @@ function SentinelInner() {
           prUrl: prUrl.trim(),
           postToGithub,
           autoApprove,
+          reviewFocus,
+          securityContext:
+            reviewFocus === "security"
+              ? securityContext.trim() || undefined
+              : undefined,
           installationId: installationId ? Number(installationId) : undefined,
         });
         await queryClient.invalidateQueries({ queryKey: ["sentinel-reviews"] });
@@ -348,7 +355,7 @@ function SentinelInner() {
         setSubmitting(false);
       }
     },
-    [autoApprove, getToken, installationId, postToGithub, prUrl, queryClient, router],
+    [autoApprove, getToken, installationId, postToGithub, prUrl, queryClient, reviewFocus, router, securityContext],
   );
 
   async function toggleAutoApprove(instId: number, value: boolean) {
@@ -675,6 +682,31 @@ function SentinelInner() {
                   <div className="bg-black/15 p-5 sm:p-6">
                     <div className="space-y-4">
 
+                      <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.06] bg-black/25 p-1.5">
+                        {([
+                          { focus: "general" as const, label: "General review", Icon: ShieldCheck },
+                          { focus: "security" as const, label: "Security review", Icon: LockKeyhole },
+                        ]).map(({ focus, label, Icon }) => (
+                          <button
+                            key={focus}
+                            type="button"
+                            onClick={() => {
+                              setReviewFocus(focus);
+                              if (focus === "security") setAutoApprove(false);
+                            }}
+                            className={cn(
+                              "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition",
+                              reviewFocus === focus
+                                ? "border-amber-400/25 bg-amber-400/[0.08] text-amber-100"
+                                : "border-transparent text-foreground/35 hover:text-foreground/60",
+                            )}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
                       {/* PR URL input */}
                       <div>
                         <label className="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.18em] text-foreground/35">
@@ -691,6 +723,22 @@ function SentinelInner() {
                         </div>
                       </div>
 
+                      {reviewFocus === "security" ? (
+                        <div>
+                          <label className="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.18em] text-foreground/35">
+                            Security context <span className="normal-case tracking-normal text-foreground/22">(optional)</span>
+                          </label>
+                          <textarea
+                            value={securityContext}
+                            onChange={(e) => setSecurityContext(e.target.value)}
+                            rows={3}
+                            placeholder="Sensitive assets, trust boundaries, threat model, compliance requirements…"
+                            className="w-full resize-y rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-foreground/25 focus:border-amber-400/40 focus:outline-none focus:ring-2 focus:ring-amber-400/15"
+                          />
+                          <p className="mt-1.5 text-[10px] text-amber-200/45">Security reviews never auto-approve and remain advisory until a human reviews the evidence.</p>
+                        </div>
+                      ) : null}
+
                       {/* toggle options */}
                       <div className="flex flex-wrap gap-2.5">
                         <ToggleOption
@@ -699,12 +747,14 @@ function SentinelInner() {
                           label="Post to GitHub"
                           icon={<ExternalLink className="h-3 w-3" />}
                         />
-                        <ToggleOption
-                          checked={autoApprove}
-                          onChange={setAutoApprove}
-                          label="Auto-approve if clean"
-                          icon={<ShieldCheck className="h-3 w-3" />}
-                        />
+                        {reviewFocus === "general" ? (
+                          <ToggleOption
+                            checked={autoApprove}
+                            onChange={setAutoApprove}
+                            label="Auto-approve if clean"
+                            icon={<ShieldCheck className="h-3 w-3" />}
+                          />
+                        ) : null}
                       </div>
 
                       {/* messages */}
@@ -758,12 +808,12 @@ function SentinelInner() {
                           {submitting ? (
                             <>
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              Reviewing…
+                              {reviewFocus === "security" ? "Threat modeling…" : "Reviewing…"}
                             </>
                           ) : (
                             <>
                               <Zap className="h-4 w-4" />
-                              Run Sentinel Review
+                              {reviewFocus === "security" ? "Run Security Review" : "Run Sentinel Review"}
                             </>
                           )}
                         </Button>
@@ -838,6 +888,9 @@ function SentinelInner() {
                             <p className="truncate text-sm font-semibold text-white/85 group-hover:text-white">
                               {r.title || "PR review"}
                             </p>
+                            {r.reviewFocus === "security" ? (
+                              <span className="mt-1 inline-flex rounded bg-amber-400/10 px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-wider text-amber-300/70">Security</span>
+                            ) : null}
 
                             {/* PR URL */}
                             <p className="mt-0.5 truncate font-mono text-[10px] text-foreground/35">

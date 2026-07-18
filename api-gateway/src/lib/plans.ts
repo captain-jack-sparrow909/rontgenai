@@ -6,7 +6,8 @@ export type ProductId =
   | "atlas"
   | "sentinel"
   | "forge"
-  | "radar";
+  | "radar"
+  | "relay";
 
 /** Monthly unit limits. 0 = not available on plan. -1 = unlimited. */
 export const PLAN_LIMITS: Record<PlanId, Record<ProductId, number>> = {
@@ -17,6 +18,7 @@ export const PLAN_LIMITS: Record<PlanId, Record<ProductId, number>> = {
     sentinel: 0,
     forge: 0,
     radar: 2,
+    relay: 1,
   },
   pro: {
     blueprint: 50,
@@ -25,6 +27,7 @@ export const PLAN_LIMITS: Record<PlanId, Record<ProductId, number>> = {
     sentinel: 50,
     forge: 5,
     radar: 30,
+    relay: 20,
   },
   team: {
     blueprint: 200,
@@ -33,6 +36,7 @@ export const PLAN_LIMITS: Record<PlanId, Record<ProductId, number>> = {
     sentinel: 300,
     forge: 30,
     radar: 100,
+    relay: 100,
   },
 };
 

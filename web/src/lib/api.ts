@@ -137,6 +137,27 @@ export type BlueprintReviewPayload = {
   tradeoffs: string[];
   next_steps: string[];
   architecture_notes?: string;
+  cost_analysis?: {
+    baseline: string;
+    currency: string | null;
+    opportunities: {
+      resource: string;
+      category: "idle" | "rightsizing" | "storage" | "network" | "commitment" | "architecture" | "other";
+      evidence: string[];
+      recommendation: string;
+      monthly_savings_low: number | null;
+      monthly_savings_high: number | null;
+      confidence: "high" | "medium" | "low";
+      effort: "small" | "medium" | "large";
+      risk: "low" | "medium" | "high";
+      validation: string;
+    }[];
+    anomalies: string[];
+    quick_wins: string[];
+    assumptions: string[];
+    total_monthly_savings_low: number | null;
+    total_monthly_savings_high: number | null;
+  };
 };
 
 export type BlueprintReviewListItem = {
@@ -145,6 +166,7 @@ export type BlueprintReviewListItem = {
   title: string | null;
   descriptionPreview: string;
   scores?: BlueprintScores;
+  reviewMode: "architecture" | "cost";
   error: string | null;
   createdAt: string;
   updatedAt: string;
@@ -159,6 +181,10 @@ export type BlueprintReviewDetail = {
     description?: string;
     mermaid?: string | null;
     r2_key?: string | null;
+    reviewMode?: "architecture" | "cost";
+    cloudInventory?: string | null;
+    billingSummary?: string | null;
+    optimizationConstraints?: string | null;
   };
   result: {
     review?: BlueprintReviewPayload;
@@ -183,6 +209,10 @@ export function createBlueprintReview(
     imageBase64?: string;
     imageContentType?: string;
     filename?: string;
+    reviewMode?: "architecture" | "cost";
+    cloudInventory?: string;
+    billingSummary?: string;
+    optimizationConstraints?: string;
   },
 ) {
   return apiFetch<{
@@ -206,6 +236,122 @@ export function listBlueprintReviews(token: string) {
 export function getBlueprintReview(token: string, id: string) {
   return apiFetch<{ review: BlueprintReviewDetail }>(
     `/v1/blueprint/reviews/${id}`,
+    { token },
+  );
+}
+
+// ── Relay ──────────────────────────────────────────
+
+export type RelayFinding = {
+  category:
+    | "cache_miss"
+    | "flaky_test"
+    | "duplicated_work"
+    | "serialization"
+    | "runner"
+    | "setup"
+    | "artifact"
+    | "other";
+  title: string;
+  evidence: string[];
+  impact: string;
+  recommendation: string;
+  validation: string;
+  confidence: "high" | "medium" | "low";
+  estimated_savings_percent: number | null;
+};
+
+export type RelayReport = {
+  summary: string;
+  pipeline_score: number;
+  observed_duration: string | null;
+  critical_path: string[];
+  findings: RelayFinding[];
+  flaky_tests: {
+    test: string;
+    evidence: string[];
+    suspected_cause: string;
+    next_step: string;
+    confidence: "high" | "medium" | "low";
+  }[];
+  cache_analysis: {
+    current_state: string;
+    misses: string[];
+    recommendations: string[];
+  };
+  duplicated_work: string[];
+  workflow_graph_mermaid: string;
+  prioritized_actions: string[];
+  assumptions: string[];
+};
+
+export type RelayAnalysisListItem = {
+  id: string;
+  status: string;
+  title: string;
+  repository: string | null;
+  summary: string | null;
+  score: number | null;
+  findingCount: number | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RelayAnalysisDetail = {
+  id: string;
+  status: string;
+  input: {
+    title?: string;
+    repository?: string;
+    notes?: string;
+    filename?: string;
+  };
+  result: {
+    report?: RelayReport;
+    meta?: {
+      model?: string;
+      promptTokens?: number;
+      completionTokens?: number;
+      completedAt?: string;
+    };
+  } | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function createRelayAnalysis(
+  token: string,
+  body: {
+    title?: string;
+    repository?: string;
+    notes?: string;
+    pipelineData: string;
+    filename?: string;
+  },
+) {
+  return apiFetch<{
+    ok: boolean;
+    analysis: { id: string; status: string; title: string; createdAt: string };
+    usage: { used: number; limit: number; remaining: number | null };
+  }>("/v1/relay/analyses", {
+    method: "POST",
+    token,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listRelayAnalyses(token: string) {
+  return apiFetch<{ analyses: RelayAnalysisListItem[] }>(
+    "/v1/relay/analyses",
+    { token },
+  );
+}
+
+export function getRelayAnalysis(token: string, id: string) {
+  return apiFetch<{ analysis: RelayAnalysisDetail }>(
+    `/v1/relay/analyses/${id}`,
     { token },
   );
 }
@@ -541,6 +687,12 @@ export type SentinelFinding = {
   title: string;
   body: string;
   suggestion?: string | null;
+  category?: string | null;
+  cwe?: string | null;
+  exploitability?: "high" | "medium" | "low" | null;
+  attack_scenario?: string | null;
+  evidence?: string[];
+  confidence?: "high" | "medium" | "low";
 };
 
 export type SentinelReviewPayload = {
@@ -548,6 +700,12 @@ export type SentinelReviewPayload = {
   verdict: "approve" | "comment" | "request_changes";
   findings: SentinelFinding[];
   positives: string[];
+  security_posture?: {
+    attack_surface: string[];
+    trust_boundaries: string[];
+    sensitive_assets: string[];
+    residual_risks: string[];
+  };
 };
 
 export type SentinelReviewListItem = {
@@ -556,6 +714,7 @@ export type SentinelReviewListItem = {
   prUrl: string | null;
   title: string | null;
   author: string | null;
+  reviewFocus: "general" | "security";
   verdict: string | null;
   findingCount: number | null;
   githubReviewUrl: string | null;
@@ -572,6 +731,8 @@ export type SentinelReviewDetail = {
   author?: string;
   postToGithub?: boolean;
   autoApprove?: boolean;
+  reviewFocus: "general" | "security";
+  securityContext?: string | null;
   files: {
     path: string;
     status: string;
@@ -613,6 +774,8 @@ export function createSentinelReview(
     postToGithub?: boolean;
     autoApprove?: boolean;
     installationId?: number;
+    reviewFocus?: "general" | "security";
+    securityContext?: string;
   },
 ) {
   return apiFetch<{
@@ -622,6 +785,7 @@ export function createSentinelReview(
       status: string;
       prUrl: string;
       title: string;
+      reviewFocus: "general" | "security";
       createdAt: string;
     };
     usage: { used: number; limit: number; remaining: number | null };
@@ -906,6 +1070,20 @@ export type RadarReport = {
     lessons: string[];
   };
   related_signals: string[];
+  operational_correlations: {
+    signal: string;
+    related_change: string;
+    evidence: string[];
+    confidence: "high" | "medium" | "low";
+  }[];
+  safe_remediations: {
+    action: string;
+    rationale: string;
+    validation: string;
+    rollback: string;
+    risk: "low" | "medium" | "high";
+  }[];
+  approval_required: string[];
 };
 
 export type RadarInvestigationListItem = {
@@ -927,6 +1105,12 @@ export type RadarInvestigationDetail = {
   title?: string;
   description?: string | null;
   metricsNotes?: string | null;
+  operationsContext?: {
+    deployment?: string;
+    infrastructureChanges?: string;
+    alerts?: string;
+    serviceTopology?: string;
+  } | null;
   logExcerpt?: string;
   signals: {
     totalLines?: number;
@@ -961,6 +1145,12 @@ export function createRadarInvestigation(
     logs?: string;
     logBase64?: string;
     filename?: string;
+    operationsContext?: {
+      deployment?: string;
+      infrastructureChanges?: string;
+      alerts?: string;
+      serviceTopology?: string;
+    };
   },
 ) {
   return apiFetch<{

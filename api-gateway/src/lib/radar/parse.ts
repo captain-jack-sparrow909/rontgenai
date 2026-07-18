@@ -22,6 +22,21 @@ export type LogSignalSummary = {
   sampleLines: ParsedLogLine[];
 };
 
+export function emptyLogSignalSummary(): LogSignalSummary {
+  return {
+    totalLines: 0,
+    errorCount: 0,
+    warnCount: 0,
+    infoCount: 0,
+    levels: {},
+    topServices: [],
+    topErrorSignatures: [],
+    timeRange: { first: null, last: null },
+    sampleErrors: [],
+    sampleLines: [],
+  };
+}
+
 const TS_PATTERNS = [
   /\b(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\b/,
   /\b([A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\b/,

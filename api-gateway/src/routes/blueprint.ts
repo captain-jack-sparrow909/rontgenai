@@ -22,13 +22,18 @@ const createSchema = z
       .enum(["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"])
       .optional(),
     filename: z.string().max(200).optional(),
+    reviewMode: z.enum(["architecture", "cost"]).default("architecture"),
+    cloudInventory: z.string().max(1_000_000).optional(),
+    billingSummary: z.string().max(1_000_000).optional(),
+    optimizationConstraints: z.string().max(10000).optional(),
   })
   .refine(
     (v) =>
       Boolean(v.description?.trim()) ||
       Boolean(v.mermaid?.trim()) ||
-      Boolean(v.imageBase64),
-    { message: "Provide description, Mermaid, and/or a diagram image" },
+      Boolean(v.imageBase64) ||
+      (v.reviewMode === "cost" && (Boolean(v.cloudInventory?.trim()) || Boolean(v.billingSummary?.trim()))),
+    { message: "Provide architecture or cloud inventory/billing evidence" },
   );
 
 function parseBase64Image(input: string): {
@@ -81,7 +86,7 @@ export const blueprintRoutes: FastifyPluginAsync = async (app) => {
       product: "blueprint",
       plan,
       units: 1,
-      metadata: { action: "review" },
+      metadata: { action: parsed.data.reviewMode === "cost" ? "cloud_cost_review" : "review" },
     });
 
     if (!usage.allowed) {
@@ -144,12 +149,16 @@ export const blueprintRoutes: FastifyPluginAsync = async (app) => {
       .insert({
         profile_id: req.profile!.id,
         product: "blueprint",
-        type: "architecture_review",
+        type: body.reviewMode === "cost" ? "cloud_cost_review" : "architecture_review",
         status: "queued",
         input: {
           title: body.title ?? null,
+          reviewMode: body.reviewMode,
           description: body.description ?? "",
           mermaid: body.mermaid ?? null,
+          cloudInventory: body.cloudInventory ?? null,
+          billingSummary: body.billingSummary ?? null,
+          optimizationConstraints: body.optimizationConstraints ?? null,
           r2_key: r2Key ?? null,
           content_type: contentType ?? null,
           artifact_id: artifactId ?? null,
@@ -214,6 +223,7 @@ export const blueprintRoutes: FastifyPluginAsync = async (app) => {
       id: j.id,
       status: j.status,
       title: (j.input as { title?: string } | null)?.title ?? null,
+      reviewMode: (j.input as { reviewMode?: string } | null)?.reviewMode ?? "architecture",
       descriptionPreview: String(
         (j.input as { description?: string } | null)?.description ?? "",
       ).slice(0, 160),

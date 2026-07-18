@@ -20,6 +20,8 @@ const createSchema = z.object({
   postToGithub: z.boolean().optional().default(true),
   autoApprove: z.boolean().optional().default(false),
   installationId: z.number().int().positive().optional(),
+  reviewFocus: z.enum(["general", "security"]).default("general"),
+  securityContext: z.string().trim().max(3000).optional(),
 });
 
 const claimSchema = z.object({
@@ -206,7 +208,12 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
       product: "sentinel",
       plan,
       units: 1,
-      metadata: { action: "manual_review" },
+      metadata: {
+        action:
+          parsed.data.reviewFocus === "security"
+            ? "security_review"
+            : "manual_review",
+      },
     });
 
     if (!usage.allowed) {
@@ -263,6 +270,8 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
           author: snapshot.author,
           postToGithub: parsed.data.postToGithub,
           autoApprove: parsed.data.autoApprove,
+          reviewFocus: parsed.data.reviewFocus,
+          securityContext: parsed.data.securityContext ?? null,
           // store slim snapshot for processing
           snapshot: {
             ...snapshot,
@@ -289,6 +298,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
         status: job.status,
         prUrl: prRef.url,
         title: snapshot.title,
+        reviewFocus: parsed.data.reviewFocus,
         createdAt: job.created_at,
       },
       usage,
@@ -320,6 +330,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
         prUrl?: string;
         title?: string;
         author?: string;
+        reviewFocus?: "general" | "security";
       };
       const result = j.result as {
         review?: { verdict?: string; findings?: unknown[] };
@@ -331,6 +342,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
         prUrl: input.prUrl ?? null,
         title: input.title ?? null,
         author: input.author ?? null,
+        reviewFocus: input.reviewFocus ?? "general",
         verdict: result?.review?.verdict ?? null,
         findingCount: result?.review?.findings?.length ?? null,
         githubReviewUrl: result?.github?.htmlUrl ?? null,
@@ -379,6 +391,8 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
         author: input.author,
         postToGithub: input.postToGithub,
         autoApprove: input.autoApprove,
+        reviewFocus: input.reviewFocus ?? "general",
+        securityContext: input.securityContext ?? null,
         files:
           snapshot?.files?.map((f) => ({
             path: f.path,
