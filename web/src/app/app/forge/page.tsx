@@ -10,9 +10,13 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleDot,
+  Compass,
+  ExternalLink,
   GitPullRequest,
   Hammer,
   Loader2,
+  MessageSquare,
+  Search,
   Zap,
 } from "lucide-react";
 import {
@@ -23,8 +27,10 @@ import { Button } from "@/components/ui/button";
 import {
   ApiError,
   createForgeJob,
+  discoverForgeIssues,
   getForgeStatus,
   listForgeJobs,
+  type ForgeIssueCandidate,
 } from "@/lib/api";
 import { useMe } from "@/hooks/use-me";
 import { cn } from "@/lib/utils";
@@ -198,6 +204,14 @@ export default function ForgePage() {
   const [issueUrl, setIssueUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [discoverQuery, setDiscoverQuery] = useState("");
+  const [discoverLanguage, setDiscoverLanguage] = useState("");
+  const [discoverOrganization, setDiscoverOrganization] = useState("");
+  const [beginnerFriendly, setBeginnerFriendly] = useState(true);
+  const [unassignedOnly, setUnassignedOnly] = useState(true);
+  const [discovering, setDiscovering] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<ForgeIssueCandidate[]>([]);
 
   const usage = me?.usage?.forge;
   const usagePct =
@@ -260,6 +274,38 @@ export default function ForgePage() {
     },
     [getToken, issueUrl, queryClient, router],
   );
+
+  const onDiscover = useCallback(async () => {
+    setDiscoveryError(null);
+    setDiscovering(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Sign in required");
+      const result = await discoverForgeIssues(token, {
+        query: discoverQuery.trim() || undefined,
+        language: discoverLanguage.trim() || undefined,
+        organization: discoverOrganization.trim() || undefined,
+        beginnerFriendly,
+        unassignedOnly,
+        limit: 12,
+      });
+      setCandidates(result.issues);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 402) {
+        setDiscoveryError("Issue discovery requires Pro or Team. Upgrade on Billing.");
+      } else {
+        setDiscoveryError(err instanceof Error ? err.message : "Could not discover issues");
+      }
+    } finally {
+      setDiscovering(false);
+    }
+  }, [beginnerFriendly, discoverLanguage, discoverOrganization, discoverQuery, getToken, unassignedOnly]);
+
+  const selectCandidate = useCallback((candidate: ForgeIssueCandidate) => {
+    setIssueUrl(candidate.url);
+    setError(null);
+    document.getElementById("forge-composer")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   return (
     <>
@@ -410,12 +456,81 @@ export default function ForgePage() {
           </div>
         </ForgeFade>
 
+        <ForgeFade delay={0.07}>
+          <div className="mb-6 overflow-hidden rounded-2xl border border-rose-400/10 bg-black/15">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.05] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-400/10 text-rose-300">
+                  <Compass className="h-4 w-4" />
+                </span>
+                <div>
+                  <h2 className="text-sm font-semibold text-white/85">Open-source issue finder</h2>
+                  <p className="mt-0.5 text-[10px] text-foreground/35">Find active, unassigned GitHub issues and hand one directly to Forge.</p>
+                </div>
+              </div>
+              <span className="rounded-full border border-rose-400/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-rose-300/60">Pro · Team</span>
+            </div>
+
+            <div className="space-y-4 p-5">
+              <div className="grid gap-2 md:grid-cols-[1fr_160px_160px_auto]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rose-400/40" />
+                  <input value={discoverQuery} onChange={(e) => setDiscoverQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void onDiscover(); }} placeholder="What do you want to work on?" className="w-full rounded-lg border border-white/[0.07] bg-black/30 py-2.5 pl-9 pr-3 text-xs text-white placeholder:text-foreground/22 focus:border-rose-400/35 focus:outline-none" />
+                </div>
+                <input value={discoverLanguage} onChange={(e) => setDiscoverLanguage(e.target.value)} placeholder="Language" className="rounded-lg border border-white/[0.07] bg-black/30 px-3 py-2.5 text-xs text-white placeholder:text-foreground/22 focus:border-rose-400/35 focus:outline-none" />
+                <input value={discoverOrganization} onChange={(e) => setDiscoverOrganization(e.target.value)} placeholder="Organization" className="rounded-lg border border-white/[0.07] bg-black/30 px-3 py-2.5 text-xs text-white placeholder:text-foreground/22 focus:border-rose-400/35 focus:outline-none" />
+                <Button type="button" onClick={() => void onDiscover()} disabled={discovering} className="bg-rose-400/15 text-rose-200 hover:bg-rose-400/25">
+                  {discovering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                  Discover
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex cursor-pointer items-center gap-2 text-[10px] text-foreground/45"><input type="checkbox" checked={beginnerFriendly} onChange={(e) => setBeginnerFriendly(e.target.checked)} className="accent-rose-400" /> Good first issues</label>
+                <label className="flex cursor-pointer items-center gap-2 text-[10px] text-foreground/45"><input type="checkbox" checked={unassignedOnly} onChange={(e) => setUnassignedOnly(e.target.checked)} className="accent-rose-400" /> Unassigned only</label>
+              </div>
+
+              {discoveryError ? (
+                <div className="rounded-lg border border-red-500/20 bg-red-500/[0.06] px-3 py-2 text-xs text-red-300">
+                  {discoveryError} {discoveryError.includes("Billing") ? <Link href="/app/billing" className="font-semibold underline">Open Billing</Link> : null}
+                </div>
+              ) : null}
+
+              {candidates.length ? (
+                <div className="grid gap-2 lg:grid-cols-2">
+                  {candidates.map((candidate) => (
+                    <div key={candidate.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 transition hover:border-rose-400/18">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-mono text-[9px] text-rose-300/55">{candidate.repository}#{candidate.number}</p>
+                          <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-white/80">{candidate.title}</h3>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-rose-400/10 px-2 py-1 font-mono text-[9px] font-bold text-rose-300">{candidate.score}</span>
+                      </div>
+                      {candidate.bodyPreview ? <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-foreground/38">{candidate.bodyPreview}</p> : null}
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {candidate.labels.slice(0, 3).map((label) => <span key={label} className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[9px] text-foreground/40">{label}</span>)}
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-1 text-[9px] text-foreground/28"><MessageSquare className="h-3 w-3" /> {candidate.comments} · {candidate.reasons[0] ?? "Open issue"}</span>
+                        <div className="flex gap-1">
+                          <Button asChild type="button" variant="ghost" size="sm" className="h-7 px-2 text-foreground/40"><a href={candidate.url} target="_blank" rel="noreferrer" aria-label="Open issue"><ExternalLink className="h-3 w-3" /></a></Button>
+                          <Button type="button" size="sm" onClick={() => selectCandidate(candidate)} className="h-7 bg-rose-400/12 px-2.5 text-[10px] text-rose-200 hover:bg-rose-400/22">Use in Forge <ChevronRight className="h-3 w-3" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </ForgeFade>
+
         {/* ── MAIN GRID ── */}
         <div className="grid gap-5 lg:grid-cols-[1fr_296px]">
 
           {/* COMPOSER */}
           <ForgeFade delay={0.08}>
-            <form onSubmit={onSubmit}>
+            <form id="forge-composer" onSubmit={onSubmit}>
               <div className="relative overflow-hidden rounded-2xl border border-white/[0.07]">
                 <ForgingOverlay active={submitting} />
 

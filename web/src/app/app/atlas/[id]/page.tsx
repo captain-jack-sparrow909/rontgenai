@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import {
   ArrowLeft,
   BookOpen,
@@ -25,12 +24,16 @@ import {
   AtlasGlass,
   AtlasLabel,
 } from "@/components/atlas/shell";
+import { MermaidDiagram } from "@/components/atlas/mermaid-diagram";
+import { MigrationAssessment } from "@/components/atlas/migration-assessment";
 import { Button } from "@/components/ui/button";
 import {
   ApiError,
   chatAtlasMap,
   getAtlasMap,
   type AtlasChatMessage,
+  type AtlasDiagram,
+  type AtlasDiagramKind,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +49,8 @@ export default function AtlasMapPage() {
     null,
   );
   const [copied, setCopied] = useState(false);
+  const [activeDiagramKind, setActiveDiagramKind] =
+    useState<AtlasDiagramKind>("system");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const query = useQuery({
@@ -64,12 +69,29 @@ export default function AtlasMapPage() {
 
   const map = query.data?.map;
   const report = map?.report;
-  const messages = localMessages ?? map?.messages ?? [];
+  const messages = sending
+    ? (localMessages ?? map?.messages ?? [])
+    : (map?.messages ?? localMessages ?? []);
   const pending = map?.status === "queued" || map?.status === "running";
-
-  useEffect(() => {
-    if (map?.messages && !sending) setLocalMessages(null);
-  }, [map?.messages, sending]);
+  const diagrams: AtlasDiagram[] = report
+    ? report.diagrams?.length
+      ? report.diagrams
+      : report.mermaid
+        ? [
+            {
+              kind: "system",
+              title: "System architecture",
+              description: "Primary repository architecture view.",
+              mermaid: report.mermaid,
+              evidence: [],
+              confidence: "medium",
+            },
+          ]
+        : []
+    : [];
+  const activeDiagram =
+    diagrams.find((diagram) => diagram.kind === activeDiagramKind) ??
+    diagrams[0];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -107,8 +129,8 @@ export default function AtlasMapPage() {
   }
 
   async function copyMermaid() {
-    if (!report?.mermaid) return;
-    await navigator.clipboard.writeText(report.mermaid);
+    if (!activeDiagram?.mermaid) return;
+    await navigator.clipboard.writeText(activeDiagram.mermaid);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -166,6 +188,11 @@ export default function AtlasMapPage() {
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <Map className="h-4 w-4 text-violet-400" />
+                  {map.analysisMode === "migration" ? (
+                    <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-200/75">
+                      Migration assessment
+                    </span>
+                  ) : null}
                   {map.snapshot?.meta.language ? (
                     <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-foreground/50">
                       {map.snapshot.meta.language}
@@ -205,10 +232,12 @@ export default function AtlasMapPage() {
               <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
               <div>
                 <p className="text-sm font-medium text-white">
-                  Cartographing repository…
+                  {map.analysisMode === "migration"
+                    ? "Assessing migration path…"
+                    : "Cartographing repository…"}
                 </p>
                 <p className="mt-1 text-xs text-foreground/45">
-                  Fetching tree &amp; key files, then generating architecture
+                  Fetching tree &amp; key files, then generating {map.analysisMode === "migration" ? "a staged plan" : "architecture"}
                 </p>
               </div>
             </AtlasGlass>
@@ -221,6 +250,13 @@ export default function AtlasMapPage() {
                 <Link href="/app/atlas">Try another repo</Link>
               </Button>
             </AtlasGlass>
+          ) : null}
+
+          {map.migration ? (
+            <MigrationAssessment
+              assessment={map.migration}
+              request={map.migrationRequest}
+            />
           ) : null}
 
           {report ? (
@@ -254,30 +290,114 @@ export default function AtlasMapPage() {
 
                 <AtlasFade delay={0.12}>
                   <div className="mb-3 flex items-center justify-between">
-                    <AtlasLabel index="02">Architecture diagram</AtlasLabel>
+                    <AtlasLabel index="02">Architecture views</AtlasLabel>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => void copyMermaid()}
+                      disabled={!activeDiagram}
                       className="text-xs text-foreground/50"
                     >
                       <ClipboardCopy className="h-3.5 w-3.5" />
                       {copied ? "Copied" : "Copy Mermaid"}
                     </Button>
                   </div>
-                  <AtlasGlass className="overflow-hidden">
-                    <div className="flex items-center gap-1.5 border-b border-white/5 bg-[#08060f] px-4 py-2">
-                      <span className="h-2 w-2 rounded-full bg-red-400/70" />
-                      <span className="h-2 w-2 rounded-full bg-amber-400/70" />
-                      <span className="h-2 w-2 rounded-full bg-emerald-400/70" />
-                      <span className="ml-2 font-mono text-[10px] text-foreground/30">
-                        architecture.mmd
-                      </span>
+                  {diagrams.length ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {diagrams.map((diagram) => (
+                          <button
+                            key={diagram.kind}
+                            type="button"
+                            onClick={() => {
+                              setActiveDiagramKind(diagram.kind);
+                              setCopied(false);
+                            }}
+                            className={cn(
+                              "rounded-lg border px-3 py-1.5 text-xs capitalize transition",
+                              activeDiagram?.kind === diagram.kind
+                                ? "border-violet-400/40 bg-violet-400/15 text-violet-100"
+                                : "border-white/8 bg-white/[0.03] text-foreground/45 hover:border-violet-400/25 hover:text-foreground/70",
+                            )}
+                          >
+                            {diagram.kind}
+                          </button>
+                        ))}
+                      </div>
+
+                      {activeDiagram ? (
+                        <AtlasGlass className="overflow-hidden">
+                          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 bg-[#08060f] px-4 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="h-2 w-2 rounded-full bg-red-400/70" />
+                              <span className="h-2 w-2 rounded-full bg-amber-400/70" />
+                              <span className="h-2 w-2 rounded-full bg-emerald-400/70" />
+                              <span className="ml-2 font-mono text-[10px] text-foreground/30">
+                                {activeDiagram.kind}.mmd
+                              </span>
+                            </div>
+                            <span
+                              className={cn(
+                                "rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wider",
+                                activeDiagram.confidence === "high" &&
+                                  "border-emerald-400/20 text-emerald-300/70",
+                                activeDiagram.confidence === "medium" &&
+                                  "border-amber-400/20 text-amber-300/70",
+                                activeDiagram.confidence === "low" &&
+                                  "border-rose-400/20 text-rose-300/70",
+                              )}
+                            >
+                              {activeDiagram.confidence} confidence
+                            </span>
+                          </div>
+                          <div className="border-b border-white/5 px-4 py-3">
+                            <p className="text-sm font-medium text-white">
+                              {activeDiagram.title}
+                            </p>
+                            {activeDiagram.description ? (
+                              <p className="mt-1 text-xs leading-relaxed text-foreground/50">
+                                {activeDiagram.description}
+                              </p>
+                            ) : null}
+                          </div>
+                          <MermaidDiagram
+                            key={activeDiagram.kind}
+                            code={activeDiagram.mermaid}
+                            label={activeDiagram.title}
+                          />
+                          {activeDiagram.evidence.length ? (
+                            <div className="border-t border-white/5 px-4 py-3">
+                              <p className="mb-2 text-[9px] font-semibold uppercase tracking-wider text-foreground/35">
+                                Repository evidence
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {activeDiagram.evidence.map((path) => (
+                                  <code
+                                    key={path}
+                                    className="rounded bg-violet-400/8 px-2 py-1 text-[10px] text-violet-200/60"
+                                  >
+                                    {path}
+                                  </code>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                          <details className="border-t border-white/5 px-4 py-3">
+                            <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-foreground/35">
+                              Mermaid source
+                            </summary>
+                            <pre className="mt-3 overflow-x-auto font-mono text-xs leading-relaxed text-violet-100/70">
+                              {activeDiagram.mermaid}
+                            </pre>
+                          </details>
+                        </AtlasGlass>
+                      ) : null}
                     </div>
-                    <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-violet-100/80">
-                      {report.mermaid}
-                    </pre>
-                  </AtlasGlass>
+                  ) : (
+                    <AtlasGlass className="p-5 text-sm text-foreground/50">
+                      No architecture view was generated for this map.
+                    </AtlasGlass>
+                  )}
                 </AtlasFade>
 
                 {report.modules?.length ? (

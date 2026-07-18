@@ -340,9 +340,22 @@ export function chatPulseSession(token: string, id: string, message: string) {
 
 // ── Atlas ──────────────────────────────────────────
 
+export type AtlasDiagramKind = "system" | "data" | "api" | "dependencies";
+
+export type AtlasDiagram = {
+  kind: AtlasDiagramKind;
+  title: string;
+  description: string;
+  mermaid: string;
+  evidence: string[];
+  confidence: "high" | "medium" | "low";
+};
+
 export type AtlasReport = {
   summary: string;
   architecture_overview: string;
+  /** Optional for maps created before multi-view diagram support. */
+  diagrams?: AtlasDiagram[];
   mermaid: string;
   modules: { name: string; path: string; role: string }[];
   tech_stack: string[];
@@ -359,6 +372,61 @@ export type AtlasChatMessage = {
   createdAt: string;
 };
 
+export type AtlasMigrationRequest = {
+  target: string;
+  constraints?: string;
+  deadline?: string;
+};
+
+export type AtlasMigrationAssessment = {
+  executive_summary: string;
+  current_state: {
+    summary: string;
+    strengths: string[];
+    constraints: string[];
+    blockers: string[];
+  };
+  target_state: {
+    target: string;
+    architecture: string;
+    benefits: string[];
+    tradeoffs: string[];
+  };
+  diagrams: {
+    stage: "current" | "target";
+    title: string;
+    description: string;
+    mermaid: string;
+    evidence: string[];
+    confidence: "high" | "medium" | "low";
+  }[];
+  phases: {
+    name: string;
+    objective: string;
+    changes: string[];
+    dependencies: string[];
+    validation: string[];
+    rollback: string;
+    effort: "small" | "medium" | "large";
+    risk: "low" | "medium" | "high";
+  }[];
+  compatibility_bridges: {
+    from: string;
+    to: string;
+    strategy: string;
+    removal_gate: string;
+  }[];
+  testing_strategy: string[];
+  rollout_strategy: string[];
+  risk_register: {
+    risk: string;
+    impact: string;
+    mitigation: string;
+    confidence: "high" | "medium" | "low";
+  }[];
+  assumptions: string[];
+};
+
 export type AtlasMapListItem = {
   id: string;
   status: string;
@@ -366,6 +434,8 @@ export type AtlasMapListItem = {
   url: string | null;
   stars: number | null;
   language: string | null;
+  analysisMode: "map" | "migration";
+  migrationTarget: string | null;
   summary: string | null;
   error: string | null;
   createdAt: string;
@@ -377,6 +447,8 @@ export type AtlasMapDetail = {
   status: string;
   fullName?: string;
   url?: string;
+  analysisMode: "map" | "migration";
+  migrationRequest: AtlasMigrationRequest | null;
   snapshot: {
     ref: { owner: string; repo: string; fullName: string; url: string };
     meta: {
@@ -401,6 +473,7 @@ export type AtlasMapDetail = {
     keyFilePaths: string[];
   } | null;
   report: AtlasReport | null;
+  migration: AtlasMigrationAssessment | null;
   messages: AtlasChatMessage[];
   meta: unknown;
   error: string | null;
@@ -408,7 +481,16 @@ export type AtlasMapDetail = {
   updatedAt: string;
 };
 
-export function createAtlasMap(token: string, repoUrl: string) {
+export function createAtlasMap(
+  token: string,
+  repoUrl: string,
+  options?: {
+    analysisMode?: "map" | "migration";
+    migrationTarget?: string;
+    constraints?: string;
+    deadline?: string;
+  },
+) {
   return apiFetch<{
     ok: boolean;
     map: {
@@ -418,13 +500,15 @@ export function createAtlasMap(token: string, repoUrl: string) {
       url: string;
       stars: number;
       language: string | null;
+      analysisMode: "map" | "migration";
+      migrationTarget: string | null;
       createdAt: string;
     };
     usage: { used: number; limit: number; remaining: number | null };
   }>("/v1/atlas/maps", {
     method: "POST",
     token,
-    body: JSON.stringify({ repoUrl }),
+    body: JSON.stringify({ repoUrl, ...options }),
   });
 }
 
@@ -619,6 +703,27 @@ export function updateSentinelSettings(
 export type ForgePlan = {
   summary: string;
   approach: string;
+  issue_type?: "bug" | "feature" | "maintenance" | "question";
+  missing_information?: string[];
+  reproduction?: {
+    prerequisites: string[];
+    steps: string[];
+    expected_behavior: string;
+    actual_behavior: string;
+    minimal_reproduction: string;
+    confidence: "high" | "medium" | "low";
+  } | null;
+  likely_causes?: {
+    hypothesis: string;
+    evidence: string[];
+    affected_paths: string[];
+    confidence: "high" | "medium" | "low";
+  }[];
+  debugging_plan?: {
+    step: string;
+    goal: string;
+    signal: string;
+  }[];
   files_to_touch: {
     path: string;
     action: "create" | "modify" | "delete";
@@ -644,6 +749,23 @@ export type ForgeJobListItem = {
   error: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ForgeIssueCandidate = {
+  id: number;
+  url: string;
+  repository: string;
+  number: number;
+  title: string;
+  bodyPreview: string | null;
+  labels: string[];
+  author: string | null;
+  assignees: string[];
+  comments: number;
+  createdAt: string;
+  updatedAt: string;
+  score: number;
+  reasons: string[];
 };
 
 export type ForgeJobDetail = {
@@ -711,6 +833,28 @@ export function createForgeJob(
     token,
     body: JSON.stringify(body),
   });
+}
+
+export function discoverForgeIssues(
+  token: string,
+  body: {
+    query?: string;
+    language?: string;
+    organization?: string;
+    labels?: string[];
+    beginnerFriendly?: boolean;
+    unassignedOnly?: boolean;
+    limit?: number;
+  },
+) {
+  return apiFetch<{ query: string; issues: ForgeIssueCandidate[] }>(
+    "/v1/forge/issues/discover",
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(body),
+    },
+  );
 }
 
 export function listForgeJobs(token: string) {

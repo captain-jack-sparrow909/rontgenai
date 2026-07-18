@@ -1,5 +1,10 @@
 import { getSupabase } from "../supabase.js";
-import { generateAtlasReport, type AtlasChatMessage } from "./analyze.js";
+import {
+  generateAtlasMigrationAssessment,
+  generateAtlasReport,
+  type AtlasChatMessage,
+  type AtlasMigrationRequest,
+} from "./analyze.js";
 import type { RepoSnapshot } from "./github.js";
 
 export async function processAtlasMap(jobId: string): Promise<void> {
@@ -22,8 +27,41 @@ export async function processAtlasMap(jobId: string): Promise<void> {
     .eq("id", jobId);
 
   try {
-    const input = job.input as { snapshot?: RepoSnapshot };
+    const input = job.input as {
+      snapshot?: RepoSnapshot;
+      migrationRequest?: AtlasMigrationRequest;
+    };
     if (!input.snapshot) throw new Error("Missing repository snapshot");
+
+    if (job.type === "migration_assessment") {
+      if (!input.migrationRequest?.target) {
+        throw new Error("Missing migration target");
+      }
+      const { migration, model, promptTokens, completionTokens } =
+        await generateAtlasMigrationAssessment(
+          input.snapshot,
+          input.migrationRequest,
+        );
+
+      await sb
+        .from("jobs")
+        .update({
+          status: "succeeded",
+          result: {
+            migration,
+            meta: {
+              model,
+              promptTokens,
+              completionTokens,
+              completedAt: new Date().toISOString(),
+            },
+          },
+          error: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId);
+      return;
+    }
 
     const { report, model, promptTokens, completionTokens } =
       await generateAtlasReport(input.snapshot);
