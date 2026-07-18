@@ -18,10 +18,21 @@ import {
 } from "../lib/forge/process.js";
 import type { ForgePlan } from "../lib/forge/plan.js";
 import type { IssueSnapshot } from "../lib/forge/issue.js";
+import { discoverOpenSourceIssues } from "../lib/forge/discover.js";
 
 const createSchema = z.object({
   issueUrl: z.string().min(10).max(500),
   installationId: z.number().int().positive().optional(),
+});
+
+const discoverSchema = z.object({
+  query: z.string().trim().max(120).optional(),
+  language: z.string().trim().max(40).optional(),
+  organization: z.string().trim().max(80).optional(),
+  labels: z.array(z.string().trim().min(1).max(50)).max(3).optional(),
+  beginnerFriendly: z.boolean().default(true),
+  unassignedOnly: z.boolean().default(true),
+  limit: z.number().int().min(1).max(20).default(12),
 });
 
 function resolveOctokit(installationId?: number) {
@@ -47,6 +58,40 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
       planAllows: canUseProduct(plan, "forge"),
       plan,
     };
+  });
+
+  app.post("/v1/forge/issues/discover", async (req, reply) => {
+    try {
+      await requireAuth(req);
+    } catch (e) {
+      const err = e as Error & { statusCode?: number };
+      return reply.status(err.statusCode ?? 401).send({ error: err.message });
+    }
+
+    const plan = (req.subscription!.plan ?? "free") as PlanId;
+    if (!canUseProduct(plan, "forge")) {
+      return reply.status(402).send({
+        error: "Forge issue discovery requires Pro or Team plan",
+        upgradeUrl: "/app/billing",
+      });
+    }
+
+    const parsed = discoverSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Invalid body",
+        details: parsed.error.flatten(),
+      });
+    }
+
+    try {
+      const octokit = await resolveOctokit();
+      return await discoverOpenSourceIssues(octokit, parsed.data);
+    } catch (e) {
+      return reply.status(503).send({
+        error: e instanceof Error ? e.message : "GitHub issue discovery unavailable",
+      });
+    }
   });
 
   /** Start Forge: fetch issue + generate plan (awaiting approval) */

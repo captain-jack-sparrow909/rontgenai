@@ -9,11 +9,25 @@ import { enqueueAtlasProcessing } from "../lib/atlas/process.js";
 import {
   answerAtlasQuestion,
   type AtlasChatMessage,
+  type AtlasMigrationAssessment,
+  type AtlasMigrationRequest,
   type AtlasReport,
 } from "../lib/atlas/analyze.js";
 
 const createSchema = z.object({
   repoUrl: z.string().min(3).max(500),
+  analysisMode: z.enum(["map", "migration"]).default("map"),
+  migrationTarget: z.string().trim().min(2).max(500).optional(),
+  constraints: z.string().trim().max(2000).optional(),
+  deadline: z.string().trim().max(120).optional(),
+}).superRefine((value, ctx) => {
+  if (value.analysisMode === "migration" && !value.migrationTarget) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["migrationTarget"],
+      message: "A migration target is required",
+    });
+  }
 });
 
 const chatSchema = z.object({
@@ -62,7 +76,12 @@ export const atlasRoutes: FastifyPluginAsync = async (app) => {
       product: "atlas",
       plan,
       units: 1,
-      metadata: { action: "map_create" },
+      metadata: {
+        action:
+          parsed.data.analysisMode === "migration"
+            ? "migration_assessment"
+            : "map_create",
+      },
     });
 
     if (!usage.allowed) {
@@ -82,18 +101,31 @@ export const atlasRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
+    const migrationRequest: AtlasMigrationRequest | undefined =
+      parsed.data.analysisMode === "migration"
+        ? {
+            target: parsed.data.migrationTarget!,
+            constraints: parsed.data.constraints || undefined,
+            deadline: parsed.data.deadline || undefined,
+          }
+        : undefined;
     const sb = getSupabase();
     const { data: job, error } = await sb
       .from("jobs")
       .insert({
         profile_id: req.profile!.id,
         product: "atlas",
-        type: "repo_map",
+        type:
+          parsed.data.analysisMode === "migration"
+            ? "migration_assessment"
+            : "repo_map",
         status: "queued",
         input: {
           repoUrl: snapshot.ref.url,
           fullName: snapshot.ref.fullName,
           snapshot,
+          analysisMode: parsed.data.analysisMode,
+          migrationRequest,
         },
       })
       .select("*")
@@ -116,6 +148,8 @@ export const atlasRoutes: FastifyPluginAsync = async (app) => {
         url: snapshot.ref.url,
         stars: snapshot.meta.stars,
         language: snapshot.meta.language,
+        analysisMode: parsed.data.analysisMode,
+        migrationTarget: migrationRequest?.target ?? null,
         createdAt: job.created_at,
       },
       usage,
@@ -133,10 +167,10 @@ export const atlasRoutes: FastifyPluginAsync = async (app) => {
     const sb = getSupabase();
     const { data, error } = await sb
       .from("jobs")
-      .select("id, status, input, result, error, created_at, updated_at")
+      .select("id, type, status, input, result, error, created_at, updated_at")
       .eq("profile_id", req.profile!.id)
       .eq("product", "atlas")
-      .eq("type", "repo_map")
+      .in("type", ["repo_map", "migration_assessment"])
       .order("created_at", { ascending: false })
       .limit(30);
 
@@ -147,7 +181,13 @@ export const atlasRoutes: FastifyPluginAsync = async (app) => {
         fullName?: string;
         repoUrl?: string;
         snapshot?: { meta?: { stars?: number; language?: string | null } };
+        analysisMode?: "map" | "migration";
+        migrationRequest?: AtlasMigrationRequest;
       };
+      const result = j.result as {
+        report?: { summary?: string };
+        migration?: { executive_summary?: string };
+      } | null;
       return {
         id: j.id,
         status: j.status,
@@ -155,9 +195,14 @@ export const atlasRoutes: FastifyPluginAsync = async (app) => {
         url: input.repoUrl ?? null,
         stars: input.snapshot?.meta?.stars ?? null,
         language: input.snapshot?.meta?.language ?? null,
+        analysisMode:
+          input.analysisMode ??
+          (j.type === "migration_assessment"
+            ? "migration"
+            : "map"),
+        migrationTarget: input.migrationRequest?.target ?? null,
         summary:
-          (j.result as { report?: { summary?: string } } | null)?.report
-            ?.summary ?? null,
+          result?.report?.summary ?? result?.migration?.executive_summary ?? null,
         error: j.error,
         createdAt: j.created_at,
         updatedAt: j.updated_at,
@@ -192,9 +237,12 @@ export const atlasRoutes: FastifyPluginAsync = async (app) => {
       fullName?: string;
       repoUrl?: string;
       snapshot?: RepoSnapshot;
+      analysisMode?: "map" | "migration";
+      migrationRequest?: AtlasMigrationRequest;
     };
     const result = job.result as {
       report?: AtlasReport;
+      migration?: AtlasMigrationAssessment;
       messages?: AtlasChatMessage[];
       meta?: unknown;
     } | null;
@@ -205,8 +253,13 @@ export const atlasRoutes: FastifyPluginAsync = async (app) => {
         status: job.status,
         fullName: input.fullName,
         url: input.repoUrl,
+        analysisMode:
+          input.analysisMode ??
+          (job.type === "migration_assessment" ? "migration" : "map"),
+        migrationRequest: input.migrationRequest ?? null,
         snapshot: input.snapshot ? slimSnapshot(input.snapshot) : null,
         report: result?.report ?? null,
+        migration: result?.migration ?? null,
         messages: result?.messages ?? [],
         meta: result?.meta ?? null,
         error: job.error,

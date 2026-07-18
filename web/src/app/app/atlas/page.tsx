@@ -13,6 +13,7 @@ import {
   Loader2,
   Map,
   Network,
+  Route,
   Sparkles,
   Star,
   Zap,
@@ -400,6 +401,10 @@ export default function AtlasPage() {
   const { data: me } = useMe();
 
   const [repoUrl, setRepoUrl] = useState("");
+  const [analysisMode, setAnalysisMode] = useState<"map" | "migration">("map");
+  const [migrationTarget, setMigrationTarget] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -431,7 +436,15 @@ export default function AtlasPage() {
       try {
         const token = await getToken();
         if (!token) throw new Error("Sign in required");
-        const res = await createAtlasMap(token, repoUrl.trim());
+        const res = await createAtlasMap(token, repoUrl.trim(), {
+          analysisMode,
+          migrationTarget:
+            analysisMode === "migration" ? migrationTarget.trim() : undefined,
+          constraints:
+            analysisMode === "migration" ? constraints.trim() || undefined : undefined,
+          deadline:
+            analysisMode === "migration" ? deadline.trim() || undefined : undefined,
+        });
         await queryClient.invalidateQueries({ queryKey: ["atlas-maps"] });
         await queryClient.invalidateQueries({ queryKey: ["me"] });
         router.push(`/app/atlas/${res.map.id}`);
@@ -445,7 +458,7 @@ export default function AtlasPage() {
         setSubmitting(false);
       }
     },
-    [getToken, queryClient, repoUrl, router],
+    [analysisMode, constraints, deadline, getToken, migrationTarget, queryClient, repoUrl, router],
   );
 
   return (
@@ -497,6 +510,31 @@ export default function AtlasPage() {
               </div>
 
               <div className="space-y-5 p-5 sm:p-6">
+                <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.06] bg-black/25 p-1.5">
+                  {([
+                    { mode: "map" as const, label: "Architecture map", Icon: Map },
+                    { mode: "migration" as const, label: "Migration planner", Icon: Route },
+                  ]).map(({ mode, label, Icon }) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => {
+                        setAnalysisMode(mode);
+                        setError(null);
+                      }}
+                      className={cn(
+                        "flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold transition",
+                        analysisMode === mode
+                          ? "border border-violet-400/25 bg-violet-400/10 text-violet-100"
+                          : "border border-transparent text-foreground/35 hover:text-foreground/60",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Repo URL input */}
                 <div>
                   <label className="mb-2 flex items-center gap-2">
@@ -518,6 +556,33 @@ export default function AtlasPage() {
                     Public GitHub only in v1 · owner/repo shorthand supported
                   </p>
                 </div>
+
+                {analysisMode === "migration" ? (
+                  <div className="space-y-3 rounded-xl border border-violet-400/10 bg-violet-400/[0.025] p-4">
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">
+                        Migration target
+                      </label>
+                      <input
+                        value={migrationTarget}
+                        onChange={(e) => setMigrationTarget(e.target.value)}
+                        placeholder="e.g. Next.js 16, PostgreSQL, AWS, TypeScript"
+                        className="w-full rounded-lg border border-white/[0.07] bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-foreground/22 focus:border-violet-400/42 focus:outline-none focus:ring-2 focus:ring-violet-400/12"
+                      />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+                      <div>
+                        <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">Constraints</label>
+                        <input value={constraints} onChange={(e) => setConstraints(e.target.value)} placeholder="No downtime, small team…" className="w-full rounded-lg border border-white/[0.07] bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-foreground/22 focus:border-violet-400/42 focus:outline-none" />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/38">Deadline input</label>
+                        <input value={deadline} onChange={(e) => setDeadline(e.target.value)} placeholder="e.g. Q4 2026" className="w-full rounded-lg border border-white/[0.07] bg-black/35 px-3 py-2.5 text-sm text-white placeholder:text-foreground/22 focus:border-violet-400/42 focus:outline-none" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] leading-relaxed text-foreground/28">Atlas creates relative effort and validation gates—never false calendar precision.</p>
+                  </div>
+                ) : null}
 
                 {/* Example repos */}
                 <div>
@@ -578,25 +643,27 @@ export default function AtlasPage() {
                     )}
                     <Button
                       type="submit"
-                      disabled={submitting || !repoUrl.trim()}
+                      disabled={submitting || !repoUrl.trim() || (analysisMode === "migration" && !migrationTarget.trim())}
                       size="lg"
                       className="relative z-10 w-full border border-transparent bg-[#09070f] py-6 text-base font-semibold text-violet-200/80 shadow-none transition hover:bg-[#110d1a] hover:text-violet-100 disabled:opacity-40"
                     >
                       {submitting ? (
                         <>
                           <Loader2 className="animate-spin" />
-                          Mapping repository…
+                          {analysisMode === "migration" ? "Assessing migration…" : "Mapping repository…"}
                         </>
                       ) : (
                         <>
                           <Sparkles className="h-4 w-4 opacity-70" />
-                          Generate map
+                          {analysisMode === "migration" ? "Generate migration plan" : "Generate map"}
                         </>
                       )}
                     </Button>
                   </div>
                   <p className="mt-2.5 text-center text-[11px] text-foreground/26">
-                    Fetches tree · README · entry files · generates Mermaid diagrams
+                    {analysisMode === "migration"
+                      ? "Current state · target architecture · phased rollout · rollback gates"
+                      : "Fetches tree · README · entry files · generates Mermaid diagrams"}
                   </p>
                 </div>
               </div>
@@ -700,6 +767,11 @@ export default function AtlasPage() {
                               {m.fullName || "Untitled map"}
                             </p>
                             <div className="mt-0.5 flex items-center gap-2">
+                              {m.analysisMode === "migration" ? (
+                                <span className="rounded bg-fuchsia-400/[0.08] px-1.5 py-0.5 font-mono text-[9px] font-bold text-fuchsia-300/65">
+                                  MIGRATION
+                                </span>
+                              ) : null}
                               {m.language && (
                                 <span className="rounded bg-violet-400/[0.08] px-1.5 py-0.5 font-mono text-[9px] font-bold text-violet-400/60">
                                   {m.language}

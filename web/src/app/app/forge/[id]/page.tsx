@@ -7,11 +7,15 @@ import { useAuth } from "@clerk/nextjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Bug,
   Check,
+  CircleHelp,
   ExternalLink,
   FileCode2,
   Hammer,
+  ListChecks,
   Loader2,
+  Search,
   X,
 } from "lucide-react";
 import {
@@ -212,6 +216,186 @@ export default function ForgeJobPage() {
                         {l}
                       </span>
                     ))}
+                  </div>
+                ) : null}
+              </ForgeGlass>
+            </ForgeFade>
+          ) : null}
+
+          {plan &&
+          (plan.issue_type ||
+            plan.reproduction ||
+            plan.likely_causes?.length ||
+            plan.debugging_plan?.length ||
+            plan.missing_information?.length) ? (
+            <ForgeFade delay={0.09}>
+              <ForgeLabel index="DX">Issue diagnosis</ForgeLabel>
+              <ForgeGlass className="space-y-5 p-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-400/20 bg-rose-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-rose-200/80">
+                    <Bug className="h-3 w-3" />
+                    {plan.issue_type ?? "issue"}
+                  </span>
+                  {plan.reproduction ? (
+                    <ConfidenceChip value={plan.reproduction.confidence} />
+                  ) : null}
+                </div>
+
+                {plan.missing_information?.length ? (
+                  <div className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3.5">
+                    <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200/70">
+                      <CircleHelp className="h-3.5 w-3.5" />
+                      Information still needed
+                    </p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-foreground/60">
+                      {plan.missing_information.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {plan.reproduction ? (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-rose-300/70">
+                        <ListChecks className="h-3.5 w-3.5" />
+                        Reproduction procedure
+                      </p>
+                      {plan.reproduction.prerequisites.length ? (
+                        <div className="mb-3 flex flex-wrap gap-1.5">
+                          {plan.reproduction.prerequisites.map((item) => (
+                            <span
+                              key={item}
+                              className="rounded-md border border-white/8 bg-white/[0.03] px-2 py-1 text-[10px] text-foreground/50"
+                            >
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      <ol className="space-y-2">
+                        {plan.reproduction.steps.map((step, index) => (
+                          <li
+                            key={`${index}-${step}`}
+                            className="flex gap-3 text-sm text-foreground/70"
+                          >
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-rose-400/15 font-mono text-[10px] text-rose-300">
+                              {index + 1}
+                            </span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3">
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-emerald-300/60">
+                          Expected
+                        </p>
+                        <p className="mt-1.5 text-xs leading-relaxed text-foreground/60">
+                          {plan.reproduction.expected_behavior || "Not specified"}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-rose-400/15 bg-rose-400/[0.04] p-3">
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-rose-300/60">
+                          Actual
+                        </p>
+                        <p className="mt-1.5 text-xs leading-relaxed text-foreground/60">
+                          {plan.reproduction.actual_behavior || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {plan.reproduction.minimal_reproduction ? (
+                      <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-wider text-foreground/35">
+                          Minimal reproduction
+                        </p>
+                        <p className="mt-1.5 whitespace-pre-wrap rounded-xl border border-white/8 bg-black/25 p-3 font-mono text-xs leading-relaxed text-foreground/60">
+                          {plan.reproduction.minimal_reproduction}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {plan.likely_causes?.length ? (
+                  <div>
+                    <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-rose-300/70">
+                      <Search className="h-3.5 w-3.5" />
+                      Ranked likely causes
+                    </p>
+                    <div className="space-y-2">
+                      {plan.likely_causes.map((cause, index) => (
+                        <div
+                          key={`${index}-${cause.hypothesis}`}
+                          className="rounded-xl border border-white/8 bg-black/20 p-3.5"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-medium text-white">
+                              {index + 1}. {cause.hypothesis}
+                            </p>
+                            <ConfidenceChip value={cause.confidence} />
+                          </div>
+                          {cause.evidence.length ? (
+                            <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-foreground/55">
+                              {cause.evidence.map((evidence) => (
+                                <li key={evidence}>{evidence}</li>
+                              ))}
+                            </ul>
+                          ) : null}
+                          {cause.affected_paths.length ? (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {cause.affected_paths.map((path) => (
+                                <code
+                                  key={path}
+                                  className="rounded bg-rose-400/8 px-1.5 py-0.5 text-[9px] text-rose-200/60"
+                                >
+                                  {path}
+                                </code>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {plan.debugging_plan?.length ? (
+                  <div>
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-foreground/40">
+                      Debugging plan
+                    </p>
+                    <ol className="space-y-2">
+                      {plan.debugging_plan.map((item, index) => (
+                        <li
+                          key={`${index}-${item.step}`}
+                          className="grid gap-1 rounded-xl border border-white/8 bg-white/[0.02] p-3 sm:grid-cols-[24px_1fr]"
+                        >
+                          <span className="flex h-5 w-5 items-center justify-center rounded bg-rose-400/15 font-mono text-[10px] text-rose-300">
+                            {index + 1}
+                          </span>
+                          <div>
+                            <p className="text-xs font-medium text-foreground/75">
+                              {item.step}
+                            </p>
+                            {item.goal ? (
+                              <p className="mt-1 text-[11px] text-foreground/45">
+                                Goal: {item.goal}
+                              </p>
+                            ) : null}
+                            {item.signal ? (
+                              <p className="mt-1 text-[11px] text-rose-200/55">
+                                Signal: {item.signal}
+                              </p>
+                            ) : null}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
                   </div>
                 ) : null}
               </ForgeGlass>
@@ -436,6 +620,24 @@ function StageChip({ stage, status }: { stage: string; status: string }) {
       )}
     >
       {stage}
+    </span>
+  );
+}
+
+function ConfidenceChip({ value }: { value: "high" | "medium" | "low" }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wider",
+        value === "high" &&
+          "border-emerald-400/20 bg-emerald-400/[0.06] text-emerald-300/70",
+        value === "medium" &&
+          "border-amber-400/20 bg-amber-400/[0.06] text-amber-300/70",
+        value === "low" &&
+          "border-rose-400/20 bg-rose-400/[0.06] text-rose-300/70",
+      )}
+    >
+      {value}
     </span>
   );
 }
