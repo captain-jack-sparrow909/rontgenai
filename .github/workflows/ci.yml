@@ -19,7 +19,7 @@ jobs:
       run:
         working-directory: api-gateway
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -45,7 +45,7 @@ jobs:
       NO_PROXY: localhost,127.0.0.1
       no_proxy: localhost,127.0.0.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -80,7 +80,7 @@ jobs:
       PGPASSWORD: postgres
       PGDATABASE: postgres
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: psql -v ON_ERROR_STOP=1 -c "create role service_role noinherit"
       - name: Apply migrations
         run: |
