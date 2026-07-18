@@ -9,6 +9,7 @@ const DEDICATED = new Set([
   "sentinel",
   "forge",
   "radar",
+  "relay",
 ]);
 
 export function generateStaticParams() {
@@ -30,6 +31,7 @@ export default async function ProductPage({
   if (slug === "sentinel") redirect("/app/sentinel");
   if (slug === "forge") redirect("/app/forge");
   if (slug === "radar") redirect("/app/radar");
+  if (slug === "relay") redirect("/app/relay");
 
   const product = getProduct(slug);
 

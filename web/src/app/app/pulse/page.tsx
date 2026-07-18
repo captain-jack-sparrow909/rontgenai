@@ -589,11 +589,11 @@ export default function PulsePage() {
                             <Upload className="h-4.5 w-4.5 text-emerald-300/65" />
                           </div>
                           <p className="text-sm font-semibold text-white/80">Drop CSV or Excel</p>
-                          <p className="mt-1 text-xs text-foreground/32">.csv · .xlsx · .xls · up to 10 MB</p>
+                          <p className="mt-1 text-xs text-foreground/32">.csv · .xlsx · up to 10 MB</p>
                         </div>
                         <input
                           type="file"
-                          accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                          accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                           className="hidden"
                           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                         />

@@ -5,10 +5,13 @@
   "scripts": {
     "dev:web": "npm --prefix web run dev",
     "dev:api": "npm --prefix api-gateway run dev",
+    "dev:worker": "npm --prefix api-gateway run worker:tsx",
     "build:web": "npm --prefix web run build",
     "build:api": "npm --prefix api-gateway run build",
     "build": "npm run build:api && npm run build:web",
     "typecheck:api": "npm --prefix api-gateway run typecheck",
+    "test:api": "npm --prefix api-gateway test",
+    "lint:web": "npm --prefix web run lint",
     "migrate": "node --env-file=web/.env.local scripts/apply-migrations.mjs"
   }
 }

@@ -1,6 +1,7 @@
 import { getSupabase } from "../supabase.js";
 import { getSignedGetUrl, isR2Configured } from "../r2.js";
 import { runBlueprintReview } from "./review.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 /**
  * Process a blueprint job in-process (Phase 2).
@@ -37,6 +38,10 @@ export async function processBlueprintJob(jobId: string): Promise<void> {
       r2_key?: string;
       content_type?: string;
       image_data_url?: string;
+      reviewMode?: "architecture" | "cost";
+      cloudInventory?: string;
+      billingSummary?: string;
+      optimizationConstraints?: string;
     };
 
     let imageUrl: string | undefined = input.image_data_url;
@@ -51,7 +56,7 @@ export async function processBlueprintJob(jobId: string): Promise<void> {
     }
 
     const description = (input.description ?? "").trim();
-    if (!description && !input.mermaid && !imageUrl) {
+    if (!description && !input.mermaid && !imageUrl && !input.cloudInventory && !input.billingSummary) {
       throw new Error("No architecture description, Mermaid, or diagram provided");
     }
 
@@ -63,6 +68,10 @@ export async function processBlueprintJob(jobId: string): Promise<void> {
           "See attached diagram / Mermaid. Infer architecture from available inputs.",
         mermaid: input.mermaid,
         imageUrl,
+        reviewMode: input.reviewMode,
+        cloudInventory: input.cloudInventory,
+        billingSummary: input.billingSummary,
+        optimizationConstraints: input.optimizationConstraints,
       });
 
     await sb
@@ -98,7 +107,5 @@ export async function processBlueprintJob(jobId: string): Promise<void> {
 
 /** Fire-and-forget without blocking the HTTP response. */
 export function enqueueBlueprintProcessing(jobId: string): void {
-  setImmediate(() => {
-    void processBlueprintJob(jobId);
-  });
+  runInlineJob(() => processBlueprintJob(jobId));
 }

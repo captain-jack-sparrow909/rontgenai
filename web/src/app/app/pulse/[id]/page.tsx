@@ -64,12 +64,6 @@ export default function PulseSessionPage() {
     session?.status === "queued" || session?.status === "running";
 
   useEffect(() => {
-    if (session?.messages && !sending) {
-      setLocalMessages(null);
-    }
-  }, [session?.messages, sending]);
-
-  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, sending]);
 
@@ -98,6 +92,7 @@ export default function PulseSessionPage() {
       ]);
       await queryClient.invalidateQueries({ queryKey: ["pulse-session", id] });
       await queryClient.invalidateQueries({ queryKey: ["me"] });
+      setLocalMessages(null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {
         setError("Pulse limit reached. Upgrade on Billing.");

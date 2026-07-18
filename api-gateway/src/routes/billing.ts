@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { env } from "../env.js";
-import { requireAuth } from "../plugins/auth.js";
+import { requireAuth, requireWorkspaceRole } from "../plugins/auth.js";
 
 const checkoutSchema = z.object({
   plan: z.enum(["pro", "team"]),
@@ -40,6 +40,7 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
   app.post("/v1/billing/checkout", async (req, reply) => {
     try {
       await requireAuth(req);
+      requireWorkspaceRole(req, ["owner", "admin"]);
     } catch (e) {
       const err = e as Error & { statusCode?: number };
       return reply.status(err.statusCode ?? 401).send({ error: err.message });
@@ -78,6 +79,7 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
       customData: {
         profile_id: req.profile!.id,
         clerk_user_id: req.auth!.clerkUserId,
+        ...(req.organization ? { organization_id: req.organization.id } : {}),
         plan,
         interval,
       },

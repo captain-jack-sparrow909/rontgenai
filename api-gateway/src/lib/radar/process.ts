@@ -1,6 +1,10 @@
 import { getSupabase } from "../supabase.js";
-import { runRadarInvestigation } from "./investigate.js";
+import {
+  runRadarInvestigation,
+  type RadarOperationsContext,
+} from "./investigate.js";
 import type { LogSignalSummary } from "./parse.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 export async function processRadarInvestigation(jobId: string): Promise<void> {
   const sb = getSupabase();
@@ -27,6 +31,7 @@ export async function processRadarInvestigation(jobId: string): Promise<void> {
       description?: string;
       metricsNotes?: string;
       summary?: LogSignalSummary;
+      operationsContext?: RadarOperationsContext;
     };
 
     if (!input.summary) throw new Error("Missing log signal summary");
@@ -36,6 +41,7 @@ export async function processRadarInvestigation(jobId: string): Promise<void> {
         title: input.title,
         description: input.description,
         metricsNotes: input.metricsNotes,
+        operationsContext: input.operationsContext,
         summary: input.summary,
       });
 
@@ -77,7 +83,5 @@ export async function processRadarInvestigation(jobId: string): Promise<void> {
 }
 
 export function enqueueRadarInvestigation(jobId: string): void {
-  setImmediate(() => {
-    void processRadarInvestigation(jobId);
-  });
+  runInlineJob(() => processRadarInvestigation(jobId));
 }

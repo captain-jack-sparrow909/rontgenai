@@ -29,6 +29,29 @@ export type BlueprintReviewResult = {
   tradeoffs: string[];
   next_steps: string[];
   architecture_notes?: string;
+  cost_analysis?: BlueprintCostAnalysis;
+};
+
+export type BlueprintCostAnalysis = {
+  baseline: string;
+  currency: string | null;
+  opportunities: {
+    resource: string;
+    category: "idle" | "rightsizing" | "storage" | "network" | "commitment" | "architecture" | "other";
+    evidence: string[];
+    recommendation: string;
+    monthly_savings_low: number | null;
+    monthly_savings_high: number | null;
+    confidence: "high" | "medium" | "low";
+    effort: "small" | "medium" | "large";
+    risk: "low" | "medium" | "high";
+    validation: string;
+  }[];
+  anomalies: string[];
+  quick_wins: string[];
+  assumptions: string[];
+  total_monthly_savings_low: number | null;
+  total_monthly_savings_high: number | null;
 };
 
 const SYSTEM_PROMPT = `You are Blueprint, a senior staff+ system design reviewer at Röntgen AI.
@@ -91,7 +114,19 @@ function clampScore(n: unknown): number {
   return Math.max(1, Math.min(10, Math.round(v)));
 }
 
-function normalizeResult(raw: unknown): BlueprintReviewResult {
+function stringArray(value: unknown, limit = 20): string[] {
+  return Array.isArray(value)
+    ? value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, limit)
+    : [];
+}
+
+function nullableMoney(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? Math.round(number * 100) / 100 : null;
+}
+
+export function normalizeBlueprintResult(raw: unknown): BlueprintReviewResult {
   const o = (raw ?? {}) as Record<string, unknown>;
   const scores = (o.scores ?? {}) as Record<string, unknown>;
   const findingsRaw = Array.isArray(o.findings) ? o.findings : [];
@@ -124,6 +159,42 @@ function normalizeResult(raw: unknown): BlueprintReviewResult {
     };
   });
 
+  const cost = (o.cost_analysis && typeof o.cost_analysis === "object"
+    ? o.cost_analysis
+    : null) as Record<string, unknown> | null;
+  const costAnalysis: BlueprintCostAnalysis | undefined = cost
+    ? {
+        baseline: String(cost.baseline ?? "No reliable spend baseline supplied.").slice(0, 2500),
+        currency: cost.currency ? String(cost.currency).slice(0, 12) : null,
+        opportunities: Array.isArray(cost.opportunities)
+          ? cost.opportunities.slice(0, 20).map((opportunity) => {
+              const item = (opportunity && typeof opportunity === "object" ? opportunity : {}) as Record<string, unknown>;
+              const category = String(item.category ?? "other").toLowerCase();
+              const confidence = String(item.confidence ?? "medium").toLowerCase();
+              const effort = String(item.effort ?? "medium").toLowerCase();
+              const risk = String(item.risk ?? "medium").toLowerCase();
+              return {
+                resource: String(item.resource ?? "Unknown resource").slice(0, 300),
+                category: (["idle", "rightsizing", "storage", "network", "commitment", "architecture"].includes(category) ? category : "other") as BlueprintCostAnalysis["opportunities"][number]["category"],
+                evidence: stringArray(item.evidence, 10),
+                recommendation: String(item.recommendation ?? "").slice(0, 1600),
+                monthly_savings_low: nullableMoney(item.monthly_savings_low),
+                monthly_savings_high: nullableMoney(item.monthly_savings_high),
+                confidence: (["high", "low"].includes(confidence) ? confidence : "medium") as "high" | "medium" | "low",
+                effort: (["small", "large"].includes(effort) ? effort : "medium") as "small" | "medium" | "large",
+                risk: (["low", "high"].includes(risk) ? risk : "medium") as "low" | "medium" | "high",
+                validation: String(item.validation ?? "Validate utilization and billing data before making changes.").slice(0, 1200),
+              };
+            })
+          : [],
+        anomalies: stringArray(cost.anomalies, 20),
+        quick_wins: stringArray(cost.quick_wins, 20),
+        assumptions: stringArray(cost.assumptions, 20),
+        total_monthly_savings_low: nullableMoney(cost.total_monthly_savings_low),
+        total_monthly_savings_high: nullableMoney(cost.total_monthly_savings_high),
+      }
+    : undefined;
+
   return {
     summary: String(o.summary ?? "Review completed."),
     scores: {
@@ -143,6 +214,7 @@ function normalizeResult(raw: unknown): BlueprintReviewResult {
     architecture_notes: o.architecture_notes
       ? String(o.architecture_notes)
       : undefined,
+    ...(costAnalysis ? { cost_analysis: costAnalysis } : {}),
   };
 }
 
@@ -152,6 +224,10 @@ export async function runBlueprintReview(input: {
   mermaid?: string;
   /** data URL or https URL for image */
   imageUrl?: string;
+  reviewMode?: "architecture" | "cost";
+  cloudInventory?: string;
+  billingSummary?: string;
+  optimizationConstraints?: string;
 }): Promise<{
   review: BlueprintReviewResult;
   model: string;
@@ -164,6 +240,27 @@ export async function runBlueprintReview(input: {
   if (input.mermaid?.trim()) {
     parts.push(`# Mermaid diagram\n\`\`\`mermaid\n${input.mermaid.trim()}\n\`\`\``);
   }
+  if (input.reviewMode === "cost") {
+    if (input.cloudInventory?.trim()) parts.push(`# Cloud inventory\n${input.cloudInventory.slice(0, 120_000)}`);
+    if (input.billingSummary?.trim()) parts.push(`# Billing and usage export\n${input.billingSummary.slice(0, 120_000)}`);
+    if (input.optimizationConstraints?.trim()) parts.push(`# Constraints\n${input.optimizationConstraints.slice(0, 5000)}`);
+  }
+
+  const systemPrompt = input.reviewMode === "cost"
+    ? `${SYSTEM_PROMPT}\n\nCLOUD COST REVIEW MODE:
+- Treat all cloud access as read-only. Never claim to terminate, resize, purchase, or modify a resource.
+- Use the supplied inventory, billing, utilization, and architecture evidence to find idle resources, rightsizing, storage/network waste, commitment opportunities, anomalies, and architectural savings.
+- Do not invent provider prices, utilization, spend, or savings. Use null savings when the supplied evidence cannot support a monetary estimate.
+- Avoid double-counting overlapping opportunities. Make risks and validation steps explicit.
+- Also include:
+"cost_analysis": {
+  "baseline": "what spend/usage baseline is evidenced",
+  "currency": "USD or null",
+  "opportunities": [{"resource":"…","category":"idle|rightsizing|storage|network|commitment|architecture|other","evidence":["…"],"recommendation":"…","monthly_savings_low":null,"monthly_savings_high":null,"confidence":"high|medium|low","effort":"small|medium|large","risk":"low|medium|high","validation":"…"}],
+  "anomalies": ["…"], "quick_wins": ["…"], "assumptions": ["…"],
+  "total_monthly_savings_low": null, "total_monthly_savings_high": null
+}`
+    : SYSTEM_PROMPT;
 
   const userContent: ChatMessage["content"] = input.imageUrl
     ? [
@@ -177,7 +274,7 @@ export async function runBlueprintReview(input: {
   try {
     result = await completeChat({
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userContent },
       ],
       temperature: 0.2,
@@ -190,7 +287,7 @@ export async function runBlueprintReview(input: {
     const textOnly = `${parts.join("\n\n")}\n\n# Note\nA diagram image was uploaded but the model could not process images. Review from text/Mermaid only. Assume the diagram matches the description.`;
     result = await completeChat({
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: textOnly },
       ],
       temperature: 0.2,
@@ -199,7 +296,7 @@ export async function runBlueprintReview(input: {
     });
   }
 
-  const parsed = normalizeResult(extractJson(result.content));
+  const parsed = normalizeBlueprintResult(extractJson(result.content));
   return {
     review: parsed,
     model: result.model,

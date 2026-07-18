@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "../../env.js";
 import { getSupabase } from "../../lib/supabase.js";
 
@@ -12,6 +12,7 @@ type PaddleEvent = {
     customer_id?: string;
     custom_data?: {
       profile_id?: string;
+      organization_id?: string;
       clerk_user_id?: string;
       plan?: string;
     };
@@ -38,6 +39,13 @@ function verifyPaddleSignature(
   const ts = parts.ts;
   const h1 = parts.h1;
   if (!ts || !h1) return false;
+  const timestamp = Number(ts);
+  if (
+    !Number.isFinite(timestamp) ||
+    Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300
+  ) {
+    return false;
+  }
 
   const payload = `${ts}:${rawBody}`;
   const expected = createHmac("sha256", secret).update(payload).digest("hex");
@@ -72,9 +80,10 @@ function planFromPriceId(priceId?: string): "pro" | "team" | null {
 export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
   app.post("/v1/webhooks/paddle", async (req, reply) => {
     const rawBody =
-      typeof req.body === "string"
+      req.rawBody ??
+      (typeof req.body === "string"
         ? req.body
-        : JSON.stringify(req.body ?? {});
+        : JSON.stringify(req.body ?? {}));
 
     if (env.PADDLE_WEBHOOK_SECRET) {
       const sig = req.headers["paddle-signature"] as string | undefined;
@@ -96,8 +105,37 @@ export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
     const type = event.event_type ?? "";
     const data = event.data ?? {};
     const sb = getSupabase();
+    const eventId =
+      event.event_id ?? createHash("sha256").update(rawBody).digest("hex");
+    const payloadHash = createHash("sha256").update(rawBody).digest("hex");
+    const { error: eventInsertError } = await sb.from("webhook_events").insert({
+      provider: "paddle",
+      event_id: eventId,
+      event_type: type,
+      payload_hash: payloadHash,
+      status: "processing",
+    });
+    if (eventInsertError?.code === "23505") {
+      return { ok: true, duplicate: true, event: type };
+    }
+    if (eventInsertError) {
+      return reply.status(500).send({ error: eventInsertError.message });
+    }
+
+    const markProcessed = async () => {
+      await sb.from("webhook_events").update({
+        status: "processed",
+        processed_at: new Date().toISOString(),
+      }).eq("provider", "paddle").eq("event_id", eventId);
+    };
 
     const profileId = data.custom_data?.profile_id;
+    const organizationId = data.custom_data?.organization_id;
+    const ownerColumn = organizationId ? "organization_id" : "profile_id";
+    const ownerId = organizationId ?? profileId;
+    const ownerFields = organizationId
+      ? { profile_id: null, organization_id: organizationId }
+      : { profile_id: profileId, organization_id: null };
     const priceId = data.items?.[0]?.price?.id;
     const plan =
       (data.custom_data?.plan as "pro" | "team" | undefined) ??
@@ -110,8 +148,9 @@ export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
       type === "subscription.updated" ||
       type === "transaction.completed"
     ) {
-      if (!profileId) {
-        console.warn("paddle webhook missing profile_id", type, event.event_id);
+      if (!ownerId) {
+        console.warn("paddle webhook missing subscription owner", type, event.event_id);
+        await markProcessed();
         return { ok: true, skipped: true };
       }
 
@@ -124,7 +163,7 @@ export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
 
       const { error } = await sb.from("subscriptions").upsert(
         {
-          profile_id: profileId,
+          ...ownerFields,
           plan: status === "canceled" ? "free" : plan,
           status: status === "canceled" ? "canceled" : status,
           provider: "paddle",
@@ -133,7 +172,7 @@ export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
           current_period_end: data.current_billing_period?.ends_at ?? null,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "profile_id" },
+        { onConflict: ownerColumn },
       );
 
       // If no unique on profile_id alone, fall back to update/insert
@@ -141,7 +180,7 @@ export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
         const { data: existing } = await sb
           .from("subscriptions")
           .select("id")
-          .eq("profile_id", profileId)
+          .eq(ownerColumn, ownerId)
           .maybeSingle();
 
         if (existing) {
@@ -158,7 +197,7 @@ export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
             .eq("id", existing.id);
         } else {
           await sb.from("subscriptions").insert({
-            profile_id: profileId,
+            ...ownerFields,
             plan: status === "canceled" ? "free" : plan,
             status: status === "canceled" ? "canceled" : status,
             provider: "paddle",
@@ -171,7 +210,7 @@ export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (type === "subscription.canceled" || type === "subscription.past_due") {
-      if (profileId) {
+      if (ownerId) {
         await sb
           .from("subscriptions")
           .update({
@@ -179,10 +218,11 @@ export const paddleWebhookRoutes: FastifyPluginAsync = async (app) => {
             status: type === "subscription.canceled" ? "canceled" : "past_due",
             updated_at: new Date().toISOString(),
           })
-          .eq("profile_id", profileId);
+          .eq(ownerColumn, ownerId);
       }
     }
 
+    await markProcessed();
     return { ok: true, event: type };
   });
 };

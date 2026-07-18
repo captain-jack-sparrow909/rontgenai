@@ -16,6 +16,7 @@ export interface Plan {
     sentinel: string;
     forge: string;
     radar: string;
+    relay: string;
     seats: string;
   };
 }
@@ -40,6 +41,7 @@ export const plans: Plan[] = [
       sentinel: "—",
       forge: "—",
       radar: "2 investigations / mo",
+      relay: "1 pipeline analysis / mo",
       seats: "1 seat",
     },
   },
@@ -52,7 +54,7 @@ export const plans: Plan[] = [
     highlighted: true,
     cta: "Upgrade to Pro",
     features: [
-      "Full access to all 6 live products",
+      "Full access to all 7 live products",
       "Sentinel on 1 repo",
       "Forge issue → PR",
       "Unlimited history & exports",
@@ -65,6 +67,7 @@ export const plans: Plan[] = [
       sentinel: "1 repo, 50 PRs / mo",
       forge: "5 issues / mo",
       radar: "30 investigations / mo",
+      relay: "20 analyses / mo",
       seats: "1 seat",
     },
   },
@@ -89,6 +92,7 @@ export const plans: Plan[] = [
       sentinel: "10 repos, 300 PRs / mo",
       forge: "30 issues / mo",
       radar: "100 investigations / mo",
+      relay: "100 analyses / mo",
       seats: "5 seats included",
     },
   },

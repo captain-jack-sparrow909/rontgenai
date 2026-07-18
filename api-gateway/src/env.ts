@@ -4,6 +4,18 @@ import { z } from "zod";
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().default(8000),
+  JOB_EXECUTION_MODE: z.enum(["inline", "worker"]).default("inline"),
+  WORKER_ID: z.string().max(200).optional(),
+  WORKER_POLL_MS: z.coerce.number().int().min(250).max(60000).default(1500),
+  WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+  JOB_STALE_AFTER_SECONDS: z.coerce.number().int().min(30).max(86400).default(900),
+  RATE_LIMIT_READ_PER_MINUTE: z.coerce.number().int().min(10).max(10000).default(240),
+  RATE_LIMIT_WRITE_PER_MINUTE: z.coerce.number().int().min(5).max(5000).default(60),
+  UPLOAD_MAX_BYTES: z.coerce.number().int().min(1024).max(100 * 1024 * 1024).default(10 * 1024 * 1024),
+  ARTIFACT_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
+  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_ENVIRONMENT: z.string().max(100).optional(),
+  ENABLE_GENERIC_JOB_API: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
   APP_URL: z.string().url().default("http://localhost:3000"),
   /** Comma-separated allowlist, e.g. https://rontgenai.dev,https://www.rontgenai.dev */
   CORS_ORIGINS: z
@@ -69,6 +81,20 @@ function loadEnv(): Env {
   const parsed = envSchema.safeParse({
     NODE_ENV: process.env.NODE_ENV,
     PORT: process.env.PORT,
+    JOB_EXECUTION_MODE:
+      process.env.JOB_EXECUTION_MODE ??
+      (process.env.NODE_ENV === "production" ? "worker" : "inline"),
+    WORKER_ID: process.env.WORKER_ID,
+    WORKER_POLL_MS: process.env.WORKER_POLL_MS,
+    WORKER_CONCURRENCY: process.env.WORKER_CONCURRENCY,
+    JOB_STALE_AFTER_SECONDS: process.env.JOB_STALE_AFTER_SECONDS,
+    RATE_LIMIT_READ_PER_MINUTE: process.env.RATE_LIMIT_READ_PER_MINUTE,
+    RATE_LIMIT_WRITE_PER_MINUTE: process.env.RATE_LIMIT_WRITE_PER_MINUTE,
+    UPLOAD_MAX_BYTES: process.env.UPLOAD_MAX_BYTES,
+    ARTIFACT_RETENTION_DAYS: process.env.ARTIFACT_RETENTION_DAYS,
+    SENTRY_DSN: process.env.SENTRY_DSN,
+    SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT,
+    ENABLE_GENERIC_JOB_API: process.env.ENABLE_GENERIC_JOB_API,
     APP_URL: process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL,
     CORS_ORIGINS: process.env.CORS_ORIGINS ?? process.env.NEXT_PUBLIC_APP_URL,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,

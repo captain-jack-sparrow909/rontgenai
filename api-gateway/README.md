@@ -9,6 +9,7 @@ Deploy separately (Render). Not part of the Next.js app.
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/health`, `/v1/health` | — | Liveness |
+| GET | `/ready` | — | Database, Redis, and execution-mode readiness |
 | GET | `/v1/me` | Bearer | Profile + plan + usage (syncs Clerk → Supabase) |
 | GET | `/v1/usage` | Bearer | Monthly usage snapshot |
 | POST | `/v1/usage` | Bearer | Record usage (enforces limits) |
@@ -22,6 +23,9 @@ Deploy separately (Render). Not part of the Next.js app.
 | POST | `/v1/blueprint/reviews` | Bearer | Create architecture review |
 | GET | `/v1/blueprint/reviews` | Bearer | List reviews |
 | GET | `/v1/blueprint/reviews/:id` | Bearer | Review detail |
+| POST | `/v1/uploads/presign` | Bearer | Create a bounded R2 upload URL |
+| POST | `/v1/uploads/:id/confirm` | Bearer | Verify and retain an uploaded object |
+| DELETE | `/v1/uploads/:id` | Bearer | Delete an owned artifact |
 
 ## Local
 
@@ -34,11 +38,23 @@ npm run dev
 # → http://localhost:8000/health
 ```
 
+For the production execution model:
+
+```bash
+JOB_EXECUTION_MODE=worker npm run dev
+npm run worker:tsx
+```
+
+The worker claims jobs through Postgres leases, emits heartbeats, retries with
+bounded exponential backoff, recovers expired leases, and purges expired R2
+artifacts. `JOB_EXECUTION_MODE=inline` is intended only for local development.
+
 Production build:
 
 ```bash
 npm run build   # tsc → dist/
 npm start       # node dist/index.js
+npm run worker  # node dist/worker.js (separate service)
 ```
 
 Web should set `NEXT_PUBLIC_API_URL=http://localhost:8000` locally, or your Render URL in production.

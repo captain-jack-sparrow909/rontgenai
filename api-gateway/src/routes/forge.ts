@@ -1,7 +1,11 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { env } from "../env.js";
-import { requireAuth } from "../plugins/auth.js";
+import {
+  requireAuth,
+  requireWorkspaceRole,
+  workspaceScope,
+} from "../plugins/auth.js";
 import { getSupabase } from "../lib/supabase.js";
 import type { PlanId } from "../lib/plans.js";
 import { canUseProduct } from "../lib/plans.js";
@@ -121,6 +125,7 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
 
     const usage = await recordUsage({
       profileId: req.profile!.id,
+      organizationId: req.organization?.id ?? null,
       clerkUserId: req.auth!.clerkUserId,
       product: "forge",
       plan,
@@ -168,6 +173,8 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .insert({
         profile_id: req.profile!.id,
+        organization_id: req.organization?.id ?? null,
+        request_id: req.id,
         product: "forge",
         type: "issue_solve",
         status: "queued",
@@ -217,7 +224,7 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
     const { data, error } = await sb
       .from("jobs")
       .select("id, status, input, result, error, created_at, updated_at")
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "forge")
       .eq("type", "issue_solve")
       .order("created_at", { ascending: false })
@@ -269,7 +276,7 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .select("*")
       .eq("id", id)
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "forge")
       .maybeSingle();
 
@@ -324,6 +331,7 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
   app.post("/v1/forge/jobs/:id/approve", async (req, reply) => {
     try {
       await requireAuth(req);
+      requireWorkspaceRole(req, ["owner", "admin"]);
     } catch (e) {
       const err = e as Error & { statusCode?: number };
       return reply.status(err.statusCode ?? 401).send({ error: err.message });
@@ -343,7 +351,7 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .select("*")
       .eq("id", id)
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "forge")
       .maybeSingle();
 
@@ -369,6 +377,7 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
     // Meter implement as another unit
     const usage = await recordUsage({
       profileId: req.profile!.id,
+      organizationId: req.organization?.id ?? null,
       clerkUserId: req.auth!.clerkUserId,
       product: "forge",
       plan,
@@ -393,6 +402,26 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
+    const { error: queueError } = await sb
+      .from("jobs")
+      .update({
+        status: "queued",
+        input: { ...input, stage: "implementation_queued" },
+        result: { ...result, stage: "implementation_queued" },
+        error: null,
+        attempt_count: 0,
+        available_at: new Date().toISOString(),
+        locked_at: null,
+        locked_by: null,
+        last_heartbeat_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (queueError) {
+      return reply.status(500).send({ error: queueError.message });
+    }
+
     enqueueForgeImplement(id, octokit);
 
     return {
@@ -405,6 +434,7 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
   app.post("/v1/forge/jobs/:id/reject", async (req, reply) => {
     try {
       await requireAuth(req);
+      requireWorkspaceRole(req, ["owner", "admin"]);
     } catch (e) {
       const err = e as Error & { statusCode?: number };
       return reply.status(err.statusCode ?? 401).send({ error: err.message });
@@ -416,7 +446,7 @@ export const forgeRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .select("*")
       .eq("id", id)
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "forge")
       .maybeSingle();
 

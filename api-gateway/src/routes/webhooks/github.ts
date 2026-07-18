@@ -12,6 +12,7 @@ import {
   type PrRef,
 } from "../../lib/sentinel/github.js";
 import { enqueueSentinelReview } from "../../lib/sentinel/process.js";
+import { createHash } from "node:crypto";
 
 type GhPullPayload = {
   action?: string;
@@ -44,6 +45,10 @@ export const githubWebhookRoutes: FastifyPluginAsync = async (app) => {
 
     const signature = req.headers["x-hub-signature-256"] as string | undefined;
     const event = req.headers["x-github-event"] as string | undefined;
+    const delivery = req.headers["x-github-delivery"] as string | undefined;
+    const sourceFingerprint = `github:${
+      delivery ?? createHash("sha256").update(rawBody).digest("hex")
+    }`;
 
     if (env.GITHUB_WEBHOOK_SECRET) {
       if (!signature) {
@@ -114,12 +119,24 @@ export const githubWebhookRoutes: FastifyPluginAsync = async (app) => {
       autoApprove?: boolean;
     };
 
+    const { data: existingJob } = await sb
+      .from("jobs")
+      .select("id,status")
+      .eq("product", "sentinel")
+      .eq("type", "pr_review")
+      .eq("source_fingerprint", sourceFingerprint)
+      .maybeSingle();
+    if (existingJob) {
+      return { ok: true, duplicate: true, jobId: existingJob.id };
+    }
+
     if (installation && metadata.enabled === false) {
       return { ok: true, ignored: "disabled" };
     }
 
     // Need a profile for metering; if unclaimed, still review if token works but skip usage account
     let profileId = installation?.profile_id as string | null;
+    const organizationId = installation?.organization_id as string | null;
     let clerkUserId: string | null = null;
     let plan: PlanId = "free";
 
@@ -134,7 +151,10 @@ export const githubWebhookRoutes: FastifyPluginAsync = async (app) => {
       const { data: sub } = await sb
         .from("subscriptions")
         .select("plan")
-        .eq("profile_id", profileId)
+        .eq(
+          organizationId ? "organization_id" : "profile_id",
+          organizationId ?? profileId,
+        )
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -151,6 +171,7 @@ export const githubWebhookRoutes: FastifyPluginAsync = async (app) => {
       if (clerkUserId) {
         const usage = await recordUsage({
           profileId,
+          organizationId,
           clerkUserId,
           product: "sentinel",
           plan,
@@ -197,6 +218,8 @@ export const githubWebhookRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .insert({
         profile_id: profileId,
+        request_id: req.id,
+        source_fingerprint: sourceFingerprint,
         product: "sentinel",
         type: "pr_review",
         status: "queued",

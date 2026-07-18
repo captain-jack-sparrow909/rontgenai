@@ -363,8 +363,8 @@ export default function DashboardPage() {
         <StatCard
           icon={TrendingUp}
           label="Tools available"
-          value="6 live"
-          sub="4 on the roadmap"
+          value="7 live"
+          sub="3 on the roadmap"
           delay={0.16}
           accent="from-emerald-400 to-teal-500"
         />
@@ -391,7 +391,7 @@ export default function DashboardPage() {
             </h2>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
               <span className="h-1 w-1 rounded-full bg-emerald-400" />
-              6 live
+              7 live
             </span>
           </div>
           <span className="text-[11px] text-foreground/25">Click to open →</span>

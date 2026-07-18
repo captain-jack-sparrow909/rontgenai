@@ -9,6 +9,7 @@ import {
   Orbit,
   Radar,
   Shield,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -19,6 +20,7 @@ const iconMap: Record<string, LucideIcon> = {
   Shield,
   Hammer,
   Radar,
+  Workflow,
   Orbit,
   LifeBuoy,
   AudioLines,

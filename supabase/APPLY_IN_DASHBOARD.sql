@@ -55,7 +55,7 @@ create table if not exists public.usage_events (
   profile_id uuid references public.profiles (id) on delete set null,
   organization_id uuid references public.organizations (id) on delete set null,
   product text not null
-    check (product in ('blueprint', 'pulse', 'atlas', 'sentinel', 'forge', 'radar')),
+    check (product in ('blueprint', 'pulse', 'atlas', 'sentinel', 'forge', 'radar', 'relay')),
   units integer not null default 1 check (units > 0),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()

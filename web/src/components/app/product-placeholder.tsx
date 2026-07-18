@@ -44,9 +44,9 @@ export function ProductPlaceholder({ product }: { product: Product }) {
             ))}
           </ul>
           <p className="text-sm text-foreground/50">
-            This product workspace is reserved for a future release. The six
-            live tools (Blueprint, Pulse, Atlas, Sentinel, Forge, Radar) are
-            available from the dashboard.
+            This product workspace is reserved for a future release. The seven
+            live tools (Blueprint, Pulse, Atlas, Sentinel, Forge, Radar, and
+            Relay) are available from the dashboard.
           </p>
           <Button asChild variant="secondary">
             <Link href="/app">Back to dashboard</Link>

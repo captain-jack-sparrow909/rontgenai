@@ -19,6 +19,7 @@ const PRODUCTS: ProductId[] = [
   "sentinel",
   "forge",
   "radar",
+  "relay",
 ];
 
 function startOfMonthUtc(d = new Date()): string {
@@ -27,10 +28,26 @@ function startOfMonthUtc(d = new Date()): string {
   ).toISOString();
 }
 
+async function usageUnitsFromDatabase(
+  profileId: string,
+  organizationId: string | null,
+  product: ProductId,
+): Promise<number> {
+  const { data, error } = await getSupabase().rpc("get_usage_units", {
+    p_profile_id: profileId,
+    p_organization_id: organizationId,
+    p_product: product,
+    p_period_start: startOfMonthUtc(),
+  });
+  if (error) throw new Error(`usage query failed: ${error.message}`);
+  return Number(data ?? 0);
+}
+
 export async function getUsageForProfile(
   profileId: string,
   clerkUserId: string,
   plan: PlanId,
+  organizationId: string | null = null,
 ): Promise<UsageSnapshot> {
   const limits = PLAN_LIMITS[plan];
   const redis = getRedis();
@@ -39,22 +56,21 @@ export async function getUsageForProfile(
   for (const product of PRODUCTS) {
     let used = 0;
     if (redis) {
-      const key = usagePeriodKey(clerkUserId, product);
-      const val = await redis.get<number | string>(key);
-      used = Number(val ?? 0);
-    } else {
-      const sb = getSupabase();
-      const { count, error } = await sb
-        .from("usage_events")
-        .select("*", { count: "exact", head: true })
-        .eq("profile_id", profileId)
-        .eq("product", product)
-        .gte("created_at", startOfMonthUtc());
-
-      if (error) {
-        throw new Error(`usage query failed: ${error.message}`);
+      try {
+      const key = usagePeriodKey(organizationId ?? clerkUserId, product);
+        const val = await redis.get<number | string>(key);
+        if (val !== null) {
+          used = Number(val);
+        } else {
+          used = await usageUnitsFromDatabase(profileId, organizationId, product);
+          await redis.set(key, used, { ex: 60 * 60 * 24 * 40 });
+        }
+      } catch (error) {
+        console.warn("usage cache unavailable; using database", error);
+        used = await usageUnitsFromDatabase(profileId, organizationId, product);
       }
-      used = count ?? 0;
+    } else {
+      used = await usageUnitsFromDatabase(profileId, organizationId, product);
     }
 
     const limit = limits[product];
@@ -70,6 +86,7 @@ export async function getUsageForProfile(
 
 export async function recordUsage(opts: {
   profileId: string;
+  organizationId?: string | null;
   clerkUserId: string;
   product: ProductId;
   plan: PlanId;
@@ -83,47 +100,35 @@ export async function recordUsage(opts: {
     return { allowed: false, used: 0, limit, remaining: 0 };
   }
 
-  const current = await getUsageForProfile(
-    opts.profileId,
-    opts.clerkUserId,
-    opts.plan,
-  );
-  const used = current[opts.product].used;
-
-  if (!isUnlimited(limit) && used + units > limit) {
-    return {
-      allowed: false,
-      used,
-      limit,
-      remaining: Math.max(0, limit - used),
-    };
-  }
-
   const sb = getSupabase();
-  const { error } = await sb.from("usage_events").insert({
-    profile_id: opts.profileId,
-    product: opts.product,
-    units,
-    metadata: opts.metadata ?? {},
+  const { data, error } = await sb.rpc("record_usage_if_allowed", {
+    p_profile_id: opts.profileId,
+    p_organization_id: opts.organizationId ?? null,
+    p_product: opts.product,
+    p_units: units,
+    p_limit: isUnlimited(limit) ? -1 : limit,
+    p_metadata: opts.metadata ?? {},
   });
-
   if (error) {
-    throw new Error(`usage insert failed: ${error.message}`);
+    throw new Error(`usage charge failed: ${error.message}`);
   }
+  const charge = (data as Array<{ allowed: boolean; used: number }> | null)?.[0];
+  if (!charge) throw new Error("usage charge returned no result");
 
   const redis = getRedis();
-  let nextUsed = used + units;
   if (redis) {
-    const key = usagePeriodKey(opts.clerkUserId, opts.product);
-    nextUsed = await redis.incrby(key, units);
-    // expire ~40 days
-    await redis.expire(key, 60 * 60 * 24 * 40);
+    const key = usagePeriodKey(opts.organizationId ?? opts.clerkUserId, opts.product);
+    try {
+      await redis.set(key, charge.used, { ex: 60 * 60 * 24 * 40 });
+    } catch (cacheError) {
+      console.warn("usage charged but cache update failed", cacheError);
+    }
   }
 
   return {
-    allowed: true,
-    used: nextUsed,
+    allowed: charge.allowed,
+    used: charge.used,
     limit,
-    remaining: isUnlimited(limit) ? null : Math.max(0, limit - nextUsed),
+    remaining: isUnlimited(limit) ? null : Math.max(0, limit - charge.used),
   };
 }

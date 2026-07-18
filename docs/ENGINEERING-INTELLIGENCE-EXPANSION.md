@@ -7,7 +7,7 @@ workflow into a separate top-level product.
 
 | Capability | Product surface | Delivery shape |
 |---|---|---|
-| Build pipeline optimizer | **Relay** (provisional) | New product surface; GitHub CI ingestion and a dedicated analyzer worker |
+| Build pipeline optimizer | **Relay** | New product surface; uploaded evidence now, then GitHub CI ingestion and a dedicated analyzer worker |
 | Bug reproduction assistant | **Forge** | Diagnosis and reproduction stage before plan approval |
 | Architecture diagram generator | **Atlas** → Blueprint | Multi-view Mermaid diagrams generated from repository evidence |
 | Migration planner | **Atlas** | Target-state assessment and staged migration plan mode |
@@ -45,27 +45,30 @@ Every capability should use the same execution envelope:
 
 ### Stage 2 — review and operations intelligence
 
-- [ ] Sentinel security review mode
-- [ ] Radar deployment and infrastructure context
-- [ ] Blueprint cloud cost review mode
+- [x] Sentinel security review mode
+- [x] Radar deployment and infrastructure context
+- [x] Blueprint cloud cost review mode with uploaded inventory and billing evidence
 
 ### Stage 3 — continuous CI intelligence
 
-- [ ] Add Relay to product, plan, usage, and navigation registries
+- [x] Add Relay to product, plan, usage, and navigation registries
 - [ ] Ingest GitHub workflow runs, jobs, steps, tests, and cache signals
-- [ ] Detect flaky tests, duplicated work, cache misses, and critical paths
-- [ ] Produce evidence-backed optimization recommendations
+- [x] Detect flaky tests, duplicated work, cache misses, and critical paths from
+  uploaded or pasted evidence
+- [x] Produce evidence-backed optimization recommendations
 
 ## Platform gates before continuous integrations
 
-- [ ] Replace in-process `setImmediate` jobs with durable workers
-- [ ] Add API and worker error monitoring
-- [ ] Add request IDs and job-correlated structured logs
-- [ ] Enforce organization roles in the API
-- [ ] Add request-level rate limiting
-- [ ] Add unit, integration, and browser tests
-- [ ] Add CI for lint, typecheck, tests, builds, and migration validation
-- [ ] Add presigned uploads and artifact retention policies
+- [x] Replace production in-process jobs with leased, retryable durable workers
+- [x] Add API and worker Sentry error monitoring
+- [x] Add request IDs and job-correlated structured logs
+- [x] Enforce organization roles and organization-owned records in the API
+- [x] Add Redis-backed request-level rate limiting
+- [x] Expand unit tests for parsing, normalization, and rate limiting
+- [x] Add production-build browser smoke tests
+- [ ] Add authenticated API integration tests and product happy/failure paths
+- [x] Add CI for lint, typecheck, tests, builds, audits, and migration validation
+- [x] Add presigned uploads and artifact retention policies
 
 ## Compatibility rules
 
@@ -79,15 +82,12 @@ Every capability should use the same execution envelope:
 
 ## Next implementation batch
 
-1. **Sentinel security focus**
-   - Add an explicit security review focus with CWE-oriented findings,
-     exploitability evidence, and config/IaC coverage.
-2. **Radar operations context**
-   - Accept deployments, infrastructure changes, alerts, and metrics alongside
-     logs; keep remediation advisory until an approval/audit layer exists.
-3. **Blueprint cloud cost focus**
-   - Start with uploaded inventory and billing exports before adding read-only
-     cloud credentials.
-4. **Relay foundation**
-   - Add a product/plan/schema migration only when durable workers, rate limits,
-     and GitHub webhook idempotency are in place.
+1. **Integration test harness**
+   - Add Clerk-authenticated API fixtures and Playwright coverage for one happy
+     path and one failure path per live product.
+2. **Relay continuous ingestion**
+   - Add idempotent GitHub and GitLab webhook ingestion after the worker and
+     organization-authorization gates are complete.
+3. **Blueprint cloud connections**
+   - Add scoped, read-only cloud credentials only after secret storage, audit
+     logging, and retention policies are in place.

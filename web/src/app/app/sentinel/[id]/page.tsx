@@ -10,8 +10,10 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
+  Crosshair,
   ExternalLink,
   Info,
+  LockKeyhole,
   Loader2,
   Shield,
   ShieldAlert,
@@ -139,6 +141,11 @@ export default function SentinelReviewPage() {
                       {payload.verdict}
                     </span>
                   ) : null}
+                  {review.reviewFocus === "security" ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/[0.08] px-2 py-0.5 font-mono text-[10px] uppercase text-amber-200/75">
+                      <LockKeyhole className="h-3 w-3" /> Security focus
+                    </span>
+                  ) : null}
                 </div>
                 <h1 className="text-2xl font-semibold tracking-tight text-white">
                   {review.title || "PR review"}
@@ -203,6 +210,29 @@ export default function SentinelReviewPage() {
                   ) : null}
                 </SentinelGlass>
               </SentinelFade>
+
+              {payload.security_posture ? (
+                <SentinelFade delay={0.11}>
+                  <SentinelLabel index="SP">Security posture</SentinelLabel>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {([
+                      ["Attack surface", payload.security_posture.attack_surface],
+                      ["Trust boundaries", payload.security_posture.trust_boundaries],
+                      ["Sensitive assets", payload.security_posture.sensitive_assets],
+                      ["Residual risks", payload.security_posture.residual_risks],
+                    ] as const).map(([label, items]) => (
+                      <SentinelGlass key={label} className="p-4">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-amber-300/65">{label}</p>
+                        {items.length ? (
+                          <ul className="space-y-1.5">
+                            {items.map((item, index) => <li key={`${index}-${item}`} className="flex gap-2 text-xs leading-relaxed text-foreground/60"><Crosshair className="mt-0.5 h-3 w-3 shrink-0 text-amber-400/60" />{item}</li>)}
+                          </ul>
+                        ) : <p className="text-xs text-foreground/30">No evidence in this diff.</p>}
+                      </SentinelGlass>
+                    ))}
+                  </div>
+                </SentinelFade>
+              ) : null}
 
               {payload.positives?.length ? (
                 <SentinelFade delay={0.12}>
@@ -312,11 +342,25 @@ function Findings({ findings }: { findings: SentinelFinding[] }) {
                 {f.path}
                 {f.line != null ? `:${f.line}` : ""}
               </span>
+              {f.cwe ? <span className="rounded border border-amber-400/20 bg-amber-400/[0.06] px-1.5 py-0.5 font-mono text-[9px] text-amber-200/65">{f.cwe}</span> : null}
+              {f.category ? <span className="rounded border border-white/10 px-1.5 py-0.5 text-[9px] uppercase text-foreground/45">{f.category}</span> : null}
+              {f.exploitability ? <span className="rounded border border-red-400/15 bg-red-400/[0.04] px-1.5 py-0.5 text-[9px] uppercase text-red-200/60">{f.exploitability} exploitability</span> : null}
             </div>
             <h4 className="text-sm font-semibold text-white">{f.title}</h4>
             <p className="mt-1.5 text-sm leading-relaxed text-foreground/65">
               {f.body}
             </p>
+            {f.attack_scenario ? (
+              <div className="mt-3 rounded-lg border border-red-400/15 bg-red-400/[0.04] px-3 py-2">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-red-300/65">Attack scenario</p>
+                <p className="mt-1 text-xs leading-relaxed text-red-100/65">{f.attack_scenario}</p>
+              </div>
+            ) : null}
+            {f.evidence?.length ? (
+              <ul className="mt-3 space-y-1">
+                {f.evidence.map((evidence, index) => <li key={`${index}-${evidence}`} className="flex gap-2 text-xs text-foreground/50"><Crosshair className="mt-0.5 h-3 w-3 shrink-0 text-amber-400/55" />{evidence}</li>)}
+              </ul>
+            ) : null}
             {f.suggestion ? (
               <p className="mt-2 rounded-lg border border-amber-400/15 bg-amber-400/[0.06] px-3 py-2 text-sm text-amber-100/85">
                 💡 {f.suggestion}

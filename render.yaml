@@ -18,6 +18,8 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: JOB_EXECUTION_MODE
+        value: worker
       # Set these in the Render dashboard (do not commit secrets):
       - key: APP_URL
         sync: false
@@ -74,4 +76,49 @@ services:
       - key: GITHUB_WEBHOOK_SECRET
         sync: false
       - key: GITHUB_APP_SLUG
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+
+  - type: worker
+    name: rontgenai-worker
+    runtime: node
+    plan: starter
+    rootDir: api-gateway
+    buildCommand: npm install && npm run build
+    startCommand: npm run worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JOB_EXECUTION_MODE
+        value: worker
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        sync: false
+      - key: DEEPSEEK_MODEL
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_S3_API_ENDPOINT
+        sync: false
+      - key: SENTRY_DSN
         sync: false

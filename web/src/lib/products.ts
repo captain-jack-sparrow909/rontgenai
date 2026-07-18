@@ -10,6 +10,7 @@ export type ProductSlug =
   | "aegis"
   | "echo"
   | "radar"
+  | "relay"
   | "arena";
 
 export interface Product {
@@ -126,6 +127,23 @@ export const products: Product[] = [
       "Ranked root causes",
       "Investigation checklists",
       "Draft postmortem sections",
+    ],
+  },
+  {
+    slug: "relay",
+    name: "Relay",
+    tagline: "Make CI fast, stable, and measurable",
+    description:
+      "Analyze workflow runs, cache behavior, flaky tests, duplicated work, and critical paths to optimize delivery pipelines.",
+    status: "available",
+    href: "/app/relay",
+    accent: "from-indigo-400 to-blue-600",
+    icon: "Workflow",
+    features: [
+      "Critical-path analysis",
+      "Cache miss detection",
+      "Flaky test evidence",
+      "Prioritized pipeline fixes",
     ],
   },
   {
