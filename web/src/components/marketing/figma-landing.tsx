@@ -7,6 +7,7 @@ import {
   Layers, Database, Network, Shield, GitPullRequest, AlertTriangle,
   CircleDot, ShieldCheck, Waves, Target, ArrowRight,
   ExternalLink, Eye, Cpu, Zap, ChevronRight, Sparkles, Activity,
+  Workflow,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -53,6 +54,9 @@ const products: Product[] = [
   { id:"radar", name:"Radar", status:"v1", desc:"Production incident RCA",
     longDesc:"Feed Radar your logs, metrics, and traces. Get root cause analysis and precise remediation steps in seconds.",
     color:"#06B6D4", glow:"rgba(6,182,212,0.14)", Icon:AlertTriangle },
+  { id:"relay", name:"Relay", status:"v1", desc:"CI pipeline optimization",
+    longDesc:"Upload workflow and run evidence. Find critical paths, cache misses, flaky tests, and duplicated work with prioritized fixes.",
+    color:"#818CF8", glow:"rgba(129,140,248,0.14)", Icon:Workflow },
   { id:"orbit",  name:"Orbit",  status:"coming-soon", desc:"AI job search copilot", longDesc:"", color:"#4B5563", glow:"", Icon:CircleDot },
   { id:"aegis",  name:"Aegis",  status:"coming-soon", desc:"AI customer support agent", longDesc:"", color:"#4B5563", glow:"", Icon:ShieldCheck },
   { id:"echo",   name:"Echo",   status:"coming-soon", desc:"AI meeting copilot", longDesc:"", color:"#4B5563", glow:"", Icon:Waves },
@@ -628,6 +632,7 @@ function HeroVisualization() {
     { cx:432, cy:258, color:"#EF4444", label:"SENTINEL",  anchor:"left"  },
     { cx:270, cy:305, color:"#8B5CF6", label:"FORGE",     anchor:"right" },
     { cx:172, cy:378, color:"#06B6D4", label:"RADAR",     anchor:"right" },
+    { cx:368, cy:378, color:"#818CF8", label:"RELAY",     anchor:"left"  },
   ] as const;
 
   // Each path: d, color, length (pre-computed approximation), delay, dotDur, dotBegin, dotPath
@@ -640,7 +645,7 @@ function HeroVisualization() {
     { d:"M432,90 L432,258",        color:"#EF4444", len:168, delay:0.35, dotDur:"6.5s", dotBegin:"2.4s",  dotPath:"M432,90 L432,258 L270,305" },
     { d:"M432,258 L270,305",       color:"#EF4444", len:194, delay:0.6,  dotDur:null,   dotBegin:null,    dotPath:null },
     { d:"M108,258 L172,378",       color:"#06B6D4", len:139, delay:0.9,  dotDur:"5.4s", dotBegin:"2.0s",  dotPath:"M108,258 L172,378" },
-    { d:"M432,258 L368,378",       color:"#2D3748", len:148, delay:1.1,  dotDur:null,   dotBegin:null,    dotPath:null },
+    { d:"M432,258 L368,378",       color:"#818CF8", len:148, delay:1.1,  dotDur:"5.8s", dotBegin:"2.6s", dotPath:"M432,258 L368,378" },
   ];
 
   return (
@@ -707,9 +712,7 @@ function HeroVisualization() {
             >{label}</text>
           </g>
         ))}
-        <circle cx="368" cy="378" r="8" fill="#0D1117" stroke="#1F2937" strokeWidth="0.8" strokeOpacity="0.5" strokeDasharray="3 5" />
-        <circle cx="368" cy="378" r="2.5" fill="#1F2937" fillOpacity="0.5" />
-        <text x="382" y="374" fill="#1F2937" fontSize="7.5" fontFamily="var(--font-jetbrains-mono),monospace" fillOpacity="0.4">+4 SOON</text>
+        <text x="270" y="406" fill="#1F2937" fontSize="7.5" fontFamily="var(--font-jetbrains-mono),monospace" fillOpacity="0.4" textAnchor="middle">+4 SOON</text>
       </svg>
 
       <div className="absolute left-0 right-0 h-px pointer-events-none"
@@ -748,7 +751,7 @@ function HeroVisualization() {
 // ─── Ticker ────────────────────────────────────────────────────────────────────
 
 function Ticker() {
-  const items = ["Blueprint","Pulse","Atlas","Sentinel","Forge","Radar","Orbit","Aegis","Echo","Arena"];
+  const items = ["Blueprint","Pulse","Atlas","Sentinel","Forge","Radar","Relay","Orbit","Aegis","Echo","Arena"];
   const repeated = [...items,...items,...items];
   return (
     <div className="relative overflow-hidden py-[13px]"
@@ -1016,7 +1019,7 @@ export default function App() {
   const [featRef, featVisible] = useFadeInUp(0.05);
   const [termRef, termVisible] = useFadeInUp(0.05);
   const [waitRef, waitVisible] = useFadeInUp(0.05);
-  const liveProd = useCounter(6, 1500, heroVisible);
+  const liveProd = useCounter(7, 1500, heroVisible);
   const scrollProg = useScrollProgress();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1096,7 +1099,7 @@ export default function App() {
             </span>
           </div>
           <div className="hidden lg:flex items-center gap-6">
-            {["Blueprint","Pulse","Atlas","Sentinel","Forge","Radar"].map(p => (
+            {["Blueprint","Pulse","Atlas","Sentinel","Forge","Radar","Relay"].map(p => (
               <a key={p} href={`/app/${p.toLowerCase()}`} className="text-[13px] transition-colors duration-180"
                 style={{ color:"#2D3D50" }}
                 onMouseEnter={e => (e.currentTarget.style.color="#8A9BB0")}
@@ -1283,7 +1286,7 @@ export default function App() {
                 </div>
               </div>
               <p style={{ color:"#2D3D50", fontFamily:"var(--font-inter),sans-serif", lineHeight:1.8, fontSize:14, maxWidth:240, textAlign:"right" }}>
-                Six products live. Four more in the scanner. Each built around one insight: engineers need to see clearly, not guess.
+                Seven products live. Four more in the scanner. Each built around one insight: engineers need to see clearly, not guess.
               </p>
             </div>
 

@@ -1,9 +1,11 @@
 import { Readable } from "node:stream";
+import { randomUUID } from "node:crypto";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import { env } from "./env.js";
 import { authPlugin } from "./plugins/auth.js";
+import { rateLimitPlugin } from "./plugins/rate-limit.js";
 import { healthRoutes } from "./routes/health.js";
 import { meRoutes } from "./routes/me.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
@@ -17,9 +19,11 @@ import { sentinelRoutes } from "./routes/sentinel.js";
 import { forgeRoutes } from "./routes/forge.js";
 import { radarRoutes } from "./routes/radar.js";
 import { relayRoutes } from "./routes/relay.js";
+import { uploadRoutes } from "./routes/uploads.js";
 import { paddleWebhookRoutes } from "./routes/webhooks/paddle.js";
 import { clerkWebhookRoutes } from "./routes/webhooks/clerk.js";
 import { githubWebhookRoutes } from "./routes/webhooks/github.js";
+import { captureException, initMonitoring } from "./lib/monitoring.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -28,15 +32,22 @@ declare module "fastify" {
 }
 
 async function main() {
+  initMonitoring("api-gateway");
   const app = Fastify({
     logger: true,
+    genReqId: (request) => {
+      const supplied = request.headers["x-request-id"];
+      return typeof supplied === "string" && /^[A-Za-z0-9._:-]{8,100}$/.test(supplied)
+        ? supplied
+        : randomUUID();
+    },
     // Base64 diagrams can be large
     bodyLimit: 12 * 1024 * 1024,
   });
 
   // Preserve raw body for GitHub webhook signature verification
   app.addHook("preParsing", async (request, _reply, payload) => {
-    if (!request.url.startsWith("/v1/webhooks/github")) {
+    if (!request.url.startsWith("/v1/webhooks/")) {
       return payload;
     }
     const chunks: Buffer[] = [];
@@ -71,6 +82,10 @@ async function main() {
   });
 
   await app.register(authPlugin);
+  await app.register(rateLimitPlugin);
+  app.addHook("onRequest", async (request, reply) => {
+    reply.header("X-Request-Id", request.id);
+  });
   await app.register(healthRoutes);
   await app.register(meRoutes);
   await app.register(waitlistRoutes);
@@ -84,16 +99,29 @@ async function main() {
   await app.register(forgeRoutes);
   await app.register(radarRoutes);
   await app.register(relayRoutes);
+  await app.register(uploadRoutes);
   await app.register(paddleWebhookRoutes);
   await app.register(clerkWebhookRoutes);
   await app.register(githubWebhookRoutes);
 
-  app.setErrorHandler((err, _req, reply) => {
+  app.setErrorHandler((err, req, reply) => {
     const error = err as Error & { statusCode?: number };
     const status = error.statusCode ?? 500;
-    app.log.error(error);
+    req.log.error({ err: error, requestId: req.id }, "request failed");
+    if (status >= 500) {
+      captureException(error, {
+        requestId: req.id,
+        method: req.method,
+        url: req.url,
+        clerkUserId: req.auth?.clerkUserId,
+      });
+    }
     reply.status(status).send({
-      error: error.message || "Internal Server Error",
+      error:
+        status >= 500 && env.NODE_ENV === "production"
+          ? "Internal Server Error"
+          : error.message || "Internal Server Error",
+      requestId: req.id,
     });
   });
 

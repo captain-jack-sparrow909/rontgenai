@@ -1,11 +1,12 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { requireAuth } from "../plugins/auth.js";
+import { requireAuth, workspaceScope } from "../plugins/auth.js";
 import { getSupabase } from "../lib/supabase.js";
 import type { PlanId } from "../lib/plans.js";
 import { recordUsage } from "../lib/usage.js";
 import {
   blueprintObjectKey,
+  artifactExpiresAt,
   isR2Configured,
   putObject,
 } from "../lib/r2.js";
@@ -82,6 +83,7 @@ export const blueprintRoutes: FastifyPluginAsync = async (app) => {
     const plan = (req.subscription!.plan ?? "free") as PlanId;
     const usage = await recordUsage({
       profileId: req.profile!.id,
+      organizationId: req.organization?.id ?? null,
       clerkUserId: req.auth!.clerkUserId,
       product: "blueprint",
       plan,
@@ -126,10 +128,12 @@ export const blueprintRoutes: FastifyPluginAsync = async (app) => {
             .from("artifacts")
             .insert({
               profile_id: req.profile!.id,
+              organization_id: req.organization?.id ?? null,
               product: "blueprint",
               r2_key: key,
               content_type: contentType,
               size_bytes: img.buffer.length,
+              expires_at: artifactExpiresAt(),
               metadata: { filename: body.filename ?? null },
             })
             .select("id")
@@ -148,6 +152,8 @@ export const blueprintRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .insert({
         profile_id: req.profile!.id,
+        organization_id: req.organization?.id ?? null,
+        request_id: req.id,
         product: "blueprint",
         type: body.reviewMode === "cost" ? "cloud_cost_review" : "architecture_review",
         status: "queued",
@@ -210,7 +216,7 @@ export const blueprintRoutes: FastifyPluginAsync = async (app) => {
     const { data, error } = await sb
       .from("jobs")
       .select("id, status, type, product, input, result, error, created_at, updated_at")
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "blueprint")
       .order("created_at", { ascending: false })
       .limit(30);
@@ -252,7 +258,7 @@ export const blueprintRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .select("*")
       .eq("id", id)
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "blueprint")
       .maybeSingle();
 

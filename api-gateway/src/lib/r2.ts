@@ -2,6 +2,8 @@ import {
   PutObjectCommand,
   S3Client,
   GetObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../env.js";
@@ -72,6 +74,60 @@ export async function getSignedGetUrl(
     }),
     { expiresIn: expiresInSeconds },
   );
+}
+
+export async function getSignedPutUrl(opts: {
+  key: string;
+  contentType: string;
+  expiresInSeconds?: number;
+}): Promise<string> {
+  if (!isR2Configured()) throw new Error("R2 is not configured");
+  return getSignedUrl(
+    client(),
+    new PutObjectCommand({
+      Bucket: env.R2_BUCKET!,
+      Key: opts.key,
+      ContentType: opts.contentType,
+    }),
+    { expiresIn: opts.expiresInSeconds ?? 600 },
+  );
+}
+
+export async function inspectObject(key: string): Promise<{
+  sizeBytes: number;
+  contentType: string | null;
+}> {
+  if (!isR2Configured()) throw new Error("R2 is not configured");
+  const result = await client().send(
+    new HeadObjectCommand({ Bucket: env.R2_BUCKET!, Key: key }),
+  );
+  return {
+    sizeBytes: result.ContentLength ?? 0,
+    contentType: result.ContentType ?? null,
+  };
+}
+
+export async function deleteObject(key: string): Promise<void> {
+  if (!isR2Configured()) throw new Error("R2 is not configured");
+  await client().send(
+    new DeleteObjectCommand({ Bucket: env.R2_BUCKET!, Key: key }),
+  );
+}
+
+export function uploadObjectKey(
+  profileId: string,
+  product: string,
+  filename: string,
+): string {
+  const safeProduct = product.replace(/[^a-z0-9_-]/gi, "_").slice(0, 32);
+  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+  return `uploads/${safeProduct}/${profileId}/${Date.now()}-${randomUUID().slice(0, 8)}-${safe}`;
+}
+
+export function artifactExpiresAt(): string {
+  return new Date(
+    Date.now() + env.ARTIFACT_RETENTION_DAYS * 86_400_000,
+  ).toISOString();
 }
 
 export function blueprintObjectKey(

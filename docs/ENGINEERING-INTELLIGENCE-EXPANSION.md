@@ -59,14 +59,16 @@ Every capability should use the same execution envelope:
 
 ## Platform gates before continuous integrations
 
-- [ ] Replace in-process `setImmediate` jobs with durable workers
-- [ ] Add API and worker error monitoring
-- [ ] Add request IDs and job-correlated structured logs
-- [ ] Enforce organization roles in the API
-- [ ] Add request-level rate limiting
-- [ ] Add unit, integration, and browser tests
-- [ ] Add CI for lint, typecheck, tests, builds, and migration validation
-- [ ] Add presigned uploads and artifact retention policies
+- [x] Replace production in-process jobs with leased, retryable durable workers
+- [x] Add API and worker Sentry error monitoring
+- [x] Add request IDs and job-correlated structured logs
+- [x] Enforce organization roles and organization-owned records in the API
+- [x] Add Redis-backed request-level rate limiting
+- [x] Expand unit tests for parsing, normalization, and rate limiting
+- [x] Add production-build browser smoke tests
+- [ ] Add authenticated API integration tests and product happy/failure paths
+- [x] Add CI for lint, typecheck, tests, builds, audits, and migration validation
+- [x] Add presigned uploads and artifact retention policies
 
 ## Compatibility rules
 
@@ -80,9 +82,9 @@ Every capability should use the same execution envelope:
 
 ## Next implementation batch
 
-1. **Execution hardening**
-   - Move analysis from in-process callbacks to durable workers with retries,
-     request correlation, monitoring, and job-level rate limits.
+1. **Integration test harness**
+   - Add Clerk-authenticated API fixtures and Playwright coverage for one happy
+     path and one failure path per live product.
 2. **Relay continuous ingestion**
    - Add idempotent GitHub and GitLab webhook ingestion after the worker and
      organization-authorization gates are complete.

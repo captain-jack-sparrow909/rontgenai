@@ -4,6 +4,7 @@ import {
   type RadarOperationsContext,
 } from "./investigate.js";
 import type { LogSignalSummary } from "./parse.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 export async function processRadarInvestigation(jobId: string): Promise<void> {
   const sb = getSupabase();
@@ -82,7 +83,5 @@ export async function processRadarInvestigation(jobId: string): Promise<void> {
 }
 
 export function enqueueRadarInvestigation(jobId: string): void {
-  setImmediate(() => {
-    void processRadarInvestigation(jobId);
-  });
+  runInlineJob(() => processRadarInvestigation(jobId));
 }

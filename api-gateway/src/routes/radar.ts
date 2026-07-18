@@ -1,10 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { requireAuth } from "../plugins/auth.js";
+import { requireAuth, workspaceScope } from "../plugins/auth.js";
 import { getSupabase } from "../lib/supabase.js";
 import type { PlanId } from "../lib/plans.js";
 import { recordUsage } from "../lib/usage.js";
-import { isR2Configured, putObject } from "../lib/r2.js";
+import { artifactExpiresAt, isR2Configured, putObject } from "../lib/r2.js";
 import { randomUUID } from "node:crypto";
 import {
   emptyLogSignalSummary,
@@ -66,6 +66,7 @@ export const radarRoutes: FastifyPluginAsync = async (app) => {
     const plan = (req.subscription!.plan ?? "free") as PlanId;
     const usage = await recordUsage({
       profileId: req.profile!.id,
+      organizationId: req.organization?.id ?? null,
       clerkUserId: req.auth!.clerkUserId,
       product: "radar",
       plan,
@@ -103,10 +104,12 @@ export const radarRoutes: FastifyPluginAsync = async (app) => {
         r2Key = key;
         await getSupabase().from("artifacts").insert({
           profile_id: req.profile!.id,
+          organization_id: req.organization?.id ?? null,
           product: "radar",
           r2_key: key,
           content_type: "text/plain",
           size_bytes: Buffer.byteLength(logText, "utf8"),
+          expires_at: artifactExpiresAt(),
           metadata: { filename: parsed.data.filename ?? "incident.log" },
         });
       }
@@ -116,6 +119,8 @@ export const radarRoutes: FastifyPluginAsync = async (app) => {
         .from("jobs")
         .insert({
           profile_id: req.profile!.id,
+          organization_id: req.organization?.id ?? null,
+          request_id: req.id,
           product: "radar",
           type: "incident_investigation",
           status: "queued",
@@ -174,7 +179,7 @@ export const radarRoutes: FastifyPluginAsync = async (app) => {
     const { data, error } = await sb
       .from("jobs")
       .select("id, status, input, result, error, created_at, updated_at")
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "radar")
       .eq("type", "incident_investigation")
       .order("created_at", { ascending: false })
@@ -221,7 +226,7 @@ export const radarRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .select("*")
       .eq("id", id)
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "radar")
       .maybeSingle();
 

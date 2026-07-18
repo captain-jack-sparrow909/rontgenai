@@ -26,7 +26,6 @@ export function MobileNav() {
   const { data: me } = useMe();
   const plan = me?.subscription.plan ?? "free";
 
-  useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -64,7 +63,7 @@ export function MobileNav() {
             >
               {/* Logo */}
               <div className="flex h-14 items-center justify-between border-b border-white/[0.05] px-4">
-                <Link href="/app" className="flex items-center gap-2.5">
+                <Link href="/app" onClick={() => setOpen(false)} className="flex items-center gap-2.5">
                   <MobileLogoMark />
                   <span
                     style={{
@@ -90,7 +89,12 @@ export function MobileNav() {
               </div>
 
               {/* Nav */}
-              <nav className="flex-1 overflow-y-auto p-2.5">
+              <nav
+                className="flex-1 overflow-y-auto p-2.5"
+                onClick={(event) => {
+                  if ((event.target as Element).closest("a")) setOpen(false);
+                }}
+              >
                 <div className="mb-1">
                   <MobileNavLink
                     href="/app"
@@ -175,6 +179,7 @@ export function MobileNav() {
                   </div>
                   <Link
                     href="/app/billing"
+                    onClick={() => setOpen(false)}
                     className="mt-1.5 inline-block text-[11px] font-medium text-cyan-400/75 transition hover:text-cyan-300"
                   >
                     {plan === "free" ? "Upgrade for GitHub tools →" : "Manage billing →"}

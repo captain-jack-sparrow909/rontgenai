@@ -6,6 +6,7 @@ import {
   type AtlasMigrationRequest,
 } from "./analyze.js";
 import type { RepoSnapshot } from "./github.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 export async function processAtlasMap(jobId: string): Promise<void> {
   const sb = getSupabase();
@@ -105,7 +106,5 @@ export async function processAtlasMap(jobId: string): Promise<void> {
 }
 
 export function enqueueAtlasProcessing(jobId: string): void {
-  setImmediate(() => {
-    void processAtlasMap(jobId);
-  });
+  runInlineJob(() => processAtlasMap(jobId));
 }

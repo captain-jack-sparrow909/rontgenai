@@ -1,6 +1,7 @@
 import { getSupabase } from "../supabase.js";
 import { bootstrapDataset, type PulseChatMessage } from "./analyze.js";
 import type { DatasetProfile } from "./parse.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 export async function processPulseSession(jobId: string): Promise<void> {
   const sb = getSupabase();
@@ -74,7 +75,5 @@ export async function processPulseSession(jobId: string): Promise<void> {
 }
 
 export function enqueuePulseProcessing(jobId: string): void {
-  setImmediate(() => {
-    void processPulseSession(jobId);
-  });
+  runInlineJob(() => processPulseSession(jobId));
 }

@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { env } from "../env.js";
-import { requireAuth } from "../plugins/auth.js";
+import { requireAuth, workspaceScope } from "../plugins/auth.js";
 import { getSupabase } from "../lib/supabase.js";
 import type { PlanId, ProductId } from "../lib/plans.js";
 import { recordUsage } from "../lib/usage.js";
@@ -14,6 +14,7 @@ const enqueueSchema = z.object({
     "sentinel",
     "forge",
     "radar",
+    "relay",
   ]),
   type: z.string().min(1).max(64),
   input: z.record(z.string(), z.unknown()).default({}),
@@ -25,6 +26,9 @@ const enqueueSchema = z.object({
  */
 export const jobRoutes: FastifyPluginAsync = async (app) => {
   app.post("/v1/jobs", async (req, reply) => {
+    if (!env.ENABLE_GENERIC_JOB_API) {
+      return reply.status(404).send({ error: "Not found" });
+    }
     try {
       await requireAuth(req);
     } catch (e) {
@@ -45,6 +49,7 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
 
     const usage = await recordUsage({
       profileId: req.profile!.id,
+      organizationId: req.organization?.id ?? null,
       clerkUserId: req.auth!.clerkUserId,
       product,
       plan,
@@ -65,6 +70,8 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .insert({
         profile_id: req.profile!.id,
+        organization_id: req.organization?.id ?? null,
+        request_id: req.id,
         product,
         type: parsed.data.type,
         status: "queued",
@@ -137,7 +144,7 @@ export const jobRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .select("*")
       .eq("id", id)
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .maybeSingle();
 
     if (error) {

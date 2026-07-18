@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import { readSheet } from "read-excel-file/node";
 
 export type ColumnType = "number" | "string" | "boolean" | "date" | "mixed";
 
@@ -120,25 +120,30 @@ function profileRows(
   };
 }
 
-export function parseSpreadsheetBuffer(
+export async function parseSpreadsheetBuffer(
   buffer: Buffer,
   filename: string,
   contentType?: string,
-): DatasetProfile {
+): Promise<DatasetProfile> {
   if (buffer.length > MAX_FILE_BYTES) {
     throw new Error("File too large (max 10MB)");
   }
 
   const lower = filename.toLowerCase();
+  if (lower.endsWith(".xls")) {
+    throw new Error(
+      "Legacy .xls files are not accepted securely. Export the workbook as .xlsx or CSV and try again.",
+    );
+  }
   const isCsv =
     lower.endsWith(".csv") ||
     contentType === "text/csv" ||
     contentType === "application/csv";
   const isXlsx =
     lower.endsWith(".xlsx") ||
-    lower.endsWith(".xls") ||
     contentType?.includes("spreadsheet") ||
-    contentType === "application/vnd.ms-excel";
+    contentType ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
   if (isCsv || (!isXlsx && buffer.toString("utf8", 0, 200).includes(","))) {
     const text = buffer.toString("utf8");
@@ -153,15 +158,21 @@ export function parseSpreadsheetBuffer(
     return profileRows(parsed.data as Record<string, unknown>[], filename);
   }
 
-  // Excel
-  const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
-  const sheetName = wb.SheetNames[0];
-  if (!sheetName) throw new Error("Workbook has no sheets");
-  const sheet = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-    defval: null,
-    raw: false,
+  const matrix = await readSheet(buffer);
+  if (!matrix.length) throw new Error("Workbook has no rows");
+  const used = new Map<string, number>();
+  const headers = matrix[0].map((value, index) => {
+    const base = String(value ?? "").trim() || `column_${index + 1}`;
+    const count = used.get(base) ?? 0;
+    used.set(base, count + 1);
+    return count ? `${base}_${count + 1}` : base;
   });
+  const rows = matrix
+    .slice(1)
+    .filter((row) => row.some((value) => value !== null && value !== ""))
+    .map((row) =>
+      Object.fromEntries(headers.map((header, index) => [header, row[index] ?? null])),
+    );
   return profileRows(rows, filename);
 }
 

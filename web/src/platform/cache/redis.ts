@@ -39,37 +39,46 @@ export class MemoryCacheStore implements CacheStore {
 
 export class UpstashCacheStore implements CacheStore {
   readonly name = "upstash";
+  private client: Redis | null = null;
 
   constructor(
     private readonly url = process.env.UPSTASH_REDIS_REST_URL,
     private readonly token = process.env.UPSTASH_REDIS_REST_TOKEN,
   ) {}
 
-  private assertConfigured() {
+  private getClient(): Redis {
     if (!this.url || !this.token) {
       throw new Error("Upstash Redis is not configured");
     }
+    if (!this.client) this.client = new Redis({ url: this.url, token: this.token });
+    return this.client;
   }
 
-  async get(): Promise<string | null> {
-    this.assertConfigured();
-    throw new Error("Upstash client wires in Phase 1");
+  async get(key: string): Promise<string | null> {
+    return this.getClient().get<string>(key);
   }
 
-  async set(): Promise<void> {
-    this.assertConfigured();
-    throw new Error("Upstash client wires in Phase 1");
+  async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    if (ttlSeconds) {
+      await this.getClient().set(key, value, { ex: ttlSeconds });
+    } else {
+      await this.getClient().set(key, value);
+    }
   }
 
-  async incr(): Promise<number> {
-    this.assertConfigured();
-    throw new Error("Upstash client wires in Phase 1");
+  async incr(key: string): Promise<number> {
+    return this.getClient().incr(key);
   }
 }
+
+let store: CacheStore | null = null;
 
 export function getCacheStore(): CacheStore {
-  if (process.env.UPSTASH_REDIS_REST_URL) {
-    return new UpstashCacheStore();
+  if (!store) {
+    store = process.env.UPSTASH_REDIS_REST_URL
+      ? new UpstashCacheStore()
+      : new MemoryCacheStore();
   }
-  return new MemoryCacheStore();
+  return store;
 }
+import { Redis } from "@upstash/redis";

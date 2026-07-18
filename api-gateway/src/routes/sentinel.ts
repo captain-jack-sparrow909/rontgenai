@@ -1,7 +1,11 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { env } from "../env.js";
-import { requireAuth } from "../plugins/auth.js";
+import {
+  requireAuth,
+  requireWorkspaceRole,
+  workspaceScope,
+} from "../plugins/auth.js";
 import { getSupabase } from "../lib/supabase.js";
 import type { PlanId } from "../lib/plans.js";
 import { canUseProduct } from "../lib/plans.js";
@@ -63,6 +67,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
   app.post("/v1/sentinel/installations", async (req, reply) => {
     try {
       await requireAuth(req);
+      requireWorkspaceRole(req, ["owner", "admin"]);
     } catch (e) {
       const err = e as Error & { statusCode?: number };
       return reply.status(err.statusCode ?? 401).send({ error: err.message });
@@ -83,6 +88,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
         {
           installation_id: parsed.data.installationId,
           profile_id: req.profile!.id,
+          organization_id: req.organization?.id ?? null,
           account_login: parsed.data.accountLogin ?? null,
           account_type: parsed.data.accountType ?? null,
           metadata: {
@@ -115,7 +121,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
     const { data, error } = await sb
       .from("github_installations")
       .select("*")
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .order("created_at", { ascending: false });
 
     if (error) return reply.status(500).send({ error: error.message });
@@ -125,6 +131,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
   app.patch("/v1/sentinel/installations/settings", async (req, reply) => {
     try {
       await requireAuth(req);
+      requireWorkspaceRole(req, ["owner", "admin"]);
     } catch (e) {
       const err = e as Error & { statusCode?: number };
       return reply.status(err.statusCode ?? 401).send({ error: err.message });
@@ -143,7 +150,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
       .from("github_installations")
       .select("*")
       .eq("installation_id", parsed.data.installationId)
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .maybeSingle();
 
     if (findErr) return reply.status(500).send({ error: findErr.message });
@@ -204,6 +211,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
 
     const usage = await recordUsage({
       profileId: req.profile!.id,
+      organizationId: req.organization?.id ?? null,
       clerkUserId: req.auth!.clerkUserId,
       product: "sentinel",
       plan,
@@ -260,6 +268,8 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .insert({
         profile_id: req.profile!.id,
+        organization_id: req.organization?.id ?? null,
+        request_id: req.id,
         product: "sentinel",
         type: "pr_review",
         status: "queued",
@@ -317,7 +327,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
     const { data, error } = await sb
       .from("jobs")
       .select("id, status, input, result, error, created_at, updated_at")
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "sentinel")
       .eq("type", "pr_review")
       .order("created_at", { ascending: false })
@@ -369,7 +379,7 @@ export const sentinelRoutes: FastifyPluginAsync = async (app) => {
       .from("jobs")
       .select("*")
       .eq("id", id)
-      .eq("profile_id", req.profile!.id)
+      .eq(...workspaceScope(req))
       .eq("product", "sentinel")
       .maybeSingle();
 

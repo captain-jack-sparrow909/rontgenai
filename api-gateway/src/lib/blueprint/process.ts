@@ -1,6 +1,7 @@
 import { getSupabase } from "../supabase.js";
 import { getSignedGetUrl, isR2Configured } from "../r2.js";
 import { runBlueprintReview } from "./review.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 /**
  * Process a blueprint job in-process (Phase 2).
@@ -106,7 +107,5 @@ export async function processBlueprintJob(jobId: string): Promise<void> {
 
 /** Fire-and-forget without blocking the HTTP response. */
 export function enqueueBlueprintProcessing(jobId: string): void {
-  setImmediate(() => {
-    void processBlueprintJob(jobId);
-  });
+  runInlineJob(() => processBlueprintJob(jobId));
 }

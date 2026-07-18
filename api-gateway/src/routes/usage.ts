@@ -12,6 +12,7 @@ const recordSchema = z.object({
     "sentinel",
     "forge",
     "radar",
+    "relay",
   ]),
   units: z.number().int().positive().max(100).optional().default(1),
   metadata: z.record(z.string(), z.unknown()).optional(),
@@ -31,6 +32,7 @@ export const usageRoutes: FastifyPluginAsync = async (app) => {
       req.profile!.id,
       req.auth!.clerkUserId,
       plan,
+      req.organization?.id ?? null,
     );
 
     return { plan, usage };
@@ -55,6 +57,7 @@ export const usageRoutes: FastifyPluginAsync = async (app) => {
     const plan = (req.subscription!.plan ?? "free") as PlanId;
     const result = await recordUsage({
       profileId: req.profile!.id,
+      organizationId: req.organization?.id ?? null,
       clerkUserId: req.auth!.clerkUserId,
       product: parsed.data.product as ProductId,
       plan,

@@ -48,21 +48,22 @@ function BillingInner() {
   const { getToken } = useAuth();
   const searchParams = useSearchParams();
   const { data: me, isLoading, refetch } = useMe();
+  const checkoutStatus = searchParams.get("checkout");
   const [busy, setBusy] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null);
+  const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(() =>
+    checkoutStatus === "success"
+      ? { text: "Payment received. Refreshing plan…", ok: true }
+      : checkoutStatus === "cancel"
+        ? { text: "Checkout canceled.", ok: false }
+        : null,
+  );
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
 
   const currentPlan = me?.subscription.plan ?? "free";
 
   useEffect(() => {
-    const status = searchParams.get("checkout");
-    if (status === "success") {
-      setToast({ text: "Payment received. Refreshing plan…", ok: true });
-      void refetch();
-    } else if (status === "cancel") {
-      setToast({ text: "Checkout canceled.", ok: false });
-    }
-  }, [searchParams, refetch]);
+    if (checkoutStatus === "success") void refetch();
+  }, [checkoutStatus, refetch]);
 
   async function onUpgrade(plan: "pro" | "team") {
     setBusy(plan);

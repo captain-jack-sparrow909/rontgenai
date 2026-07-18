@@ -1,5 +1,6 @@
 import { getSupabase } from "../supabase.js";
 import { runRelayAnalysis } from "./analyze.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 export async function processRelayJob(jobId: string): Promise<void> {
   const sb = getSupabase();
@@ -33,5 +34,5 @@ export async function processRelayJob(jobId: string): Promise<void> {
 }
 
 export function enqueueRelayProcessing(jobId: string): void {
-  setImmediate(() => void processRelayJob(jobId));
+  runInlineJob(() => processRelayJob(jobId));
 }

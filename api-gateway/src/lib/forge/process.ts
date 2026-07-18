@@ -7,10 +7,10 @@ import {
   type ForgePlan,
 } from "./plan.js";
 import { createBranchAndPr } from "./pr.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 export async function processForgePlan(
   jobId: string,
-  _octokit: Octokit,
 ): Promise<void> {
   const sb = getSupabase();
   const { data: job, error } = await sb
@@ -216,13 +216,10 @@ export async function processForgeImplement(
 }
 
 export function enqueueForgePlan(jobId: string, octokit: Octokit): void {
-  setImmediate(() => {
-    void processForgePlan(jobId, octokit);
-  });
+  void octokit;
+  runInlineJob(() => processForgePlan(jobId));
 }
 
 export function enqueueForgeImplement(jobId: string, octokit: Octokit): void {
-  setImmediate(() => {
-    void processForgeImplement(jobId, octokit);
-  });
+  runInlineJob(() => processForgeImplement(jobId, octokit));
 }

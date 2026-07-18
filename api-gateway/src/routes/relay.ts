@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { requireAuth } from "../plugins/auth.js";
+import { requireAuth, workspaceScope } from "../plugins/auth.js";
 import { getSupabase } from "../lib/supabase.js";
 import { recordUsage } from "../lib/usage.js";
 import type { PlanId } from "../lib/plans.js";
@@ -25,6 +25,7 @@ export const relayRoutes: FastifyPluginAsync = async (app) => {
     const plan = (req.subscription!.plan ?? "free") as PlanId;
     const usage = await recordUsage({
       profileId: req.profile!.id,
+      organizationId: req.organization?.id ?? null,
       clerkUserId: req.auth!.clerkUserId,
       product: "relay",
       plan,
@@ -35,6 +36,8 @@ export const relayRoutes: FastifyPluginAsync = async (app) => {
     const sb = getSupabase();
     const { data: job, error } = await sb.from("jobs").insert({
       profile_id: req.profile!.id,
+      organization_id: req.organization?.id ?? null,
+      request_id: req.id,
       product: "relay",
       type: "pipeline_analysis",
       status: "queued",
@@ -56,7 +59,7 @@ export const relayRoutes: FastifyPluginAsync = async (app) => {
     }
     const { data, error } = await getSupabase().from("jobs")
       .select("id, status, input, result, error, created_at, updated_at")
-      .eq("profile_id", req.profile!.id).eq("product", "relay").eq("type", "pipeline_analysis")
+      .eq(...workspaceScope(req)).eq("product", "relay").eq("type", "pipeline_analysis")
       .order("created_at", { ascending: false }).limit(40);
     if (error) return reply.status(500).send({ error: error.message });
     return {
@@ -80,7 +83,7 @@ export const relayRoutes: FastifyPluginAsync = async (app) => {
     }
     const { id } = req.params as { id: string };
     const { data: job, error } = await getSupabase().from("jobs").select("*")
-      .eq("id", id).eq("profile_id", req.profile!.id).eq("product", "relay").maybeSingle();
+      .eq("id", id).eq(...workspaceScope(req)).eq("product", "relay").maybeSingle();
     if (error) return reply.status(500).send({ error: error.message });
     if (!job) return reply.status(404).send({ error: "Analysis not found" });
     const input = { ...(job.input as Record<string, unknown>) };

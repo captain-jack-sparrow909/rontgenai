@@ -5,7 +5,8 @@ Target architecture:
 | Piece | Host | URL (recommended) |
 |-------|------|-------------------|
 | Web (Next.js) | **Vercel** | `https://rontgenai.dev` |
-| API (Fastify) | **Render** | `https://api.rontgenai.dev` |
+| API (Fastify) | **Render web service** | `https://api.rontgenai.dev` |
+| AI jobs | **Render background worker** | private process |
 | DB | **Supabase** | existing project |
 | Auth | **Clerk** | Production instance + custom domain |
 | Files | **Cloudflare R2** | existing bucket |
@@ -70,7 +71,9 @@ SUPABASE_SERVICE_ROLE_KEY=...
 DEEPSEEK_API_KEY=...
 ```
 
-**Strongly recommended:** R2, Upstash, Paddle sandbox, `GITHUB_TOKEN`.
+**Required for hardened production:** a separate worker, R2, Upstash, Sentry,
+and signed Clerk/GitHub/Paddle webhooks. `render.yaml` declares both Render
+services.
 
 ### 1.3 Custom domain for API
 
@@ -88,6 +91,8 @@ DEEPSEEK_API_KEY=...
 ```bash
 curl https://api.rontgenai.dev/health
 # {"ok":true,"service":"api-gateway",...}
+curl https://api.rontgenai.dev/ready
+# HTTP 200 with database/Redis checks
 ```
 
 ---

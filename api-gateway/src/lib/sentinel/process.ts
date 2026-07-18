@@ -13,6 +13,7 @@ import {
   type SentinelReviewResult,
   type SentinelReviewFocus,
 } from "./review.js";
+import { runInlineJob } from "../jobs/runtime.js";
 
 export async function processSentinelReview(
   jobId: string,
@@ -128,9 +129,7 @@ export function enqueueSentinelReview(
   jobId: string,
   octokit: Octokit,
 ): void {
-  setImmediate(() => {
-    void processSentinelReview(jobId, octokit);
-  });
+  runInlineJob(() => processSentinelReview(jobId, octokit));
 }
 
 export type { SentinelReviewResult };

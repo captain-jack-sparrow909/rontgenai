@@ -15,6 +15,7 @@
 | **Sentinel** | v1 | AI PR reviewer on GitHub |
 | **Forge** | v1 | Issue → plan → PR |
 | **Radar** | v1 | Production incident RCA |
+| **Relay** | v1 | CI pipeline optimization |
 | Orbit, Aegis, Echo, Arena | Coming soon | Placeholders + waitlist |
 
 ## Repo strategy (separate services)
@@ -22,12 +23,11 @@
 | Repo / folder | Role | Stack | Deploy |
 |---------------|------|-------|--------|
 | **`web/`** (this app) | Marketing + app shell | Next.js, Tailwind, shadcn, Clerk, TanStack, Framer Motion | Vercel |
-| **`api-gateway`** *(future)* | Auth, rate limits, routing, webhooks | NestJS or Fastify (TypeScript) | Render |
-| **`ai-worker`** *(future)* | Blueprint, Pulse, Atlas, Radar jobs | FastAPI (Python) + DeepSeek | Render |
-| **`github-service`** *(future)* | Sentinel + Forge GitHub App | Node (Octokit) or Python | Render |
+| **`api-gateway/`** | Auth, rate limits, routing, webhooks | Fastify + TypeScript | Render web service |
+| **`api-gateway/src/worker.ts`** | Durable product jobs and retention | Node + Supabase leases + DeepSeek | Render background worker |
 | **`supabase/`** | Shared Postgres migrations | Supabase | Supabase |
 
-Start with `web` only. Spin backends into their own git repos when Phase 1 begins.
+The API and worker share one package so processors and typed payloads cannot drift.
 
 ## Phase status
 
@@ -50,7 +50,7 @@ Start with `web` only. Spin backends into their own git repos when Phase 1 begin
 - [x] PostHog project key + identify
 - [x] Settings shows synced profile
 
-See `docs/PHASE-1.md`. **Next: Phase 2 — Blueprint.**
+See `docs/PRODUCTION-HARDENING.md` for the current execution and operations model.
 
 ## Deployment
 
@@ -77,6 +77,10 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+Run the API in another terminal with `npm run dev:api`. Local development uses
+inline execution by default. Set `JOB_EXECUTION_MODE=worker` and run
+`npm run dev:worker` to exercise production-style durable jobs.
 
 ### Clerk setup
 

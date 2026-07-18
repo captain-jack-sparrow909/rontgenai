@@ -60,6 +60,13 @@ export type MeResponse = {
     fullName: string | null;
     avatarUrl: string | null;
   };
+  workspace?: {
+    type: "personal" | "organization";
+    id: string;
+    clerkOrganizationId?: string;
+    name?: string;
+    role: "owner" | "admin" | "member";
+  };
   subscription: {
     plan: "free" | "pro" | "team";
     status: string;

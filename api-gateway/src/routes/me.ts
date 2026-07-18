@@ -17,6 +17,7 @@ export const meRoutes: FastifyPluginAsync = async (app) => {
       req.profile!.id,
       req.auth!.clerkUserId,
       plan,
+      req.organization?.id ?? null,
     );
 
     return {
@@ -27,6 +28,19 @@ export const meRoutes: FastifyPluginAsync = async (app) => {
         fullName: req.profile!.full_name,
         avatarUrl: req.profile!.avatar_url,
       },
+      workspace: req.organization
+        ? {
+            type: "organization",
+            id: req.organization.id,
+            clerkOrganizationId: req.organization.clerk_org_id,
+            name: req.organization.name,
+            role: req.membership?.role ?? "member",
+          }
+        : {
+            type: "personal",
+            id: req.profile!.id,
+            role: "owner",
+          },
       subscription: {
         plan,
         status: req.subscription!.status,
