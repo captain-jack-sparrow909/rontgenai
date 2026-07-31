@@ -10,7 +10,7 @@ Deploy separately (Render). Not part of the Next.js app.
 |--------|------|------|-------------|
 | GET | `/health`, `/v1/health` | — | Liveness |
 | GET | `/ready` | — | Database, Redis, and execution-mode readiness |
-| POST | `/v1/keepalive` | Cron bearer secret | Wake Render and atomically toggle a dedicated Supabase maintenance row |
+| GET/POST | `/v1/keepalive` | Cron bearer secret | Wake Render and atomically toggle a dedicated Supabase maintenance row |
 | GET | `/v1/me` | Bearer | Profile + plan + usage (syncs Clerk → Supabase) |
 | GET | `/v1/usage` | Bearer | Monthly usage snapshot |
 | POST | `/v1/usage` | Bearer | Record usage (enforces limits) |

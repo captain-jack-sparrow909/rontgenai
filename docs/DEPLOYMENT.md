@@ -105,7 +105,7 @@ cron-job.org job with these settings:
 |-------|-------|
 | URL | `https://api.rontgenai.dev/v1/keepalive` |
 | Schedule | Every 13 minutes (`*/13 * * * *`) |
-| Method | `POST` |
+| Method | `GET` |
 | Header | `Authorization: Bearer <KEEPALIVE_CRON_SECRET>` |
 
 Use the same secret in cron-job.org and the Render web service, then redeploy
@@ -116,7 +116,7 @@ between `database.action: "inserted"` and `database.action: "deleted"`:
 # Generate once, then save this value in both Render and cron-job.org.
 openssl rand -hex 32
 
-curl --fail --request POST \
+curl --fail \
   --header "Authorization: Bearer $KEEPALIVE_CRON_SECRET" \
   https://api.rontgenai.dev/v1/keepalive
 ```
