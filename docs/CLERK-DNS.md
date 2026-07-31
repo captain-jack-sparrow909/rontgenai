@@ -70,6 +70,12 @@ Keep `pk_live_…` only for production deploys (Vercel env), after Fix A is done
 
 Clerk supports [proxying the Frontend API](https://clerk.com/docs/guides/dashboard/dns-domains/proxy-fapi) through your app (e.g. `/__clerk`). Prefer Fix A when possible.
 
+Do not enable `frontendApiProxy` in `clerkMiddleware` while using the verified
+`clerk.rontgenai.dev` CNAME. Proxy mode is a separate Clerk domain
+configuration and requires the exact proxy URL (including `www`) to be
+registered in the Clerk Dashboard. Mixing both modes can redirect expired
+session refreshes to `/__clerk/v1/client/handshake` and produce `host_invalid`.
+
 ## Verify
 
 ```bash
