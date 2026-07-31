@@ -74,6 +74,7 @@ export const rateLimitPlugin: FastifyPluginAsync = async (app) => {
       request.url === "/health" ||
       request.url === "/ready" ||
       request.url === "/v1/health" ||
+      request.url === "/v1/keepalive" ||
       request.url.startsWith("/v1/webhooks/")
     ) {
       return;

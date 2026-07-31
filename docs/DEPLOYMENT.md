@@ -69,6 +69,7 @@ CLERK_SECRET_KEY=sk_live_...
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 DEEPSEEK_API_KEY=...
+KEEPALIVE_CRON_SECRET=<random-secret-of-at-least-32-characters>
 ```
 
 **Required for hardened production:** a separate worker, R2, Upstash, Sentry,
@@ -94,6 +95,34 @@ curl https://api.rontgenai.dev/health
 curl https://api.rontgenai.dev/ready
 # HTTP 200 with database/Redis checks
 ```
+
+### 1.5 Keep the free API and database active
+
+After applying `supabase/migrations/20260731_000007_keepalive.sql`, create a
+cron-job.org job with these settings:
+
+| Field | Value |
+|-------|-------|
+| URL | `https://api.rontgenai.dev/v1/keepalive` |
+| Schedule | Every 13 minutes (`*/13 * * * *`) |
+| Method | `POST` |
+| Header | `Authorization: Bearer <KEEPALIVE_CRON_SECRET>` |
+
+Use the same secret in cron-job.org and the Render web service, then redeploy
+the service. Do not put the secret in the URL. A successful response alternates
+between `database.action: "inserted"` and `database.action: "deleted"`:
+
+```bash
+# Generate once, then save this value in both Render and cron-job.org.
+openssl rand -hex 32
+
+curl --fail --request POST \
+  --header "Authorization: Bearer $KEEPALIVE_CRON_SECRET" \
+  https://api.rontgenai.dev/v1/keepalive
+```
+
+The maintenance table is isolated from product data, protected by RLS, and the
+toggle runs under a database transaction lock so concurrent calls remain safe.
 
 ---
 
@@ -186,7 +215,7 @@ https://rontgenai.dev/app
 
 | Service | Caveat |
 |---------|--------|
-| **Render free** | Spins down after idle; first request ~30–60s cold start |
+| **Render free** | Spins down after idle unless the authenticated keepalive cron is enabled; first request after sleep has a cold start |
 | **Vercel hobby** | Fine for launch traffic |
 | **Supabase free** | Watch DB size / egress |
 | **DeepSeek** | Pay-as-you-go — set plan limits in app |

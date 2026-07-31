@@ -10,7 +10,7 @@
     "worker": "node dist/worker.js",
     "worker:tsx": "node --import tsx src/worker.ts",
     "start:tsx": "node --import tsx src/index.ts",
-    "test": "NODE_ENV=test CLERK_SECRET_KEY=test SUPABASE_URL=https://example.supabase.co SUPABASE_SERVICE_ROLE_KEY=test node --import tsx --test src/lib/atlas/analyze.test.ts src/lib/blueprint/review.test.ts src/lib/forge/discover.test.ts src/lib/forge/plan.test.ts src/lib/pulse/parse.test.ts src/lib/sentinel/review.test.ts src/lib/radar/investigate.test.ts src/lib/relay/analyze.test.ts src/plugins/rate-limit.test.ts",
+    "test": "NODE_ENV=test CLERK_SECRET_KEY=test SUPABASE_URL=https://example.supabase.co SUPABASE_SERVICE_ROLE_KEY=test node --import tsx --test src/lib/atlas/analyze.test.ts src/lib/blueprint/review.test.ts src/lib/forge/discover.test.ts src/lib/forge/plan.test.ts src/lib/keepalive.test.ts src/lib/pulse/parse.test.ts src/lib/sentinel/review.test.ts src/lib/radar/investigate.test.ts src/lib/relay/analyze.test.ts src/plugins/rate-limit.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "engines": {
