@@ -1,6 +1,12 @@
 import "dotenv/config";
 import { z } from "zod";
 
+const optionalKeepaliveSecret = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim() === "" ? undefined : value,
+  z.string().trim().min(32).max(512).optional(),
+);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().default(8000),
@@ -15,6 +21,7 @@ const envSchema = z.object({
   ARTIFACT_RETENTION_DAYS: z.coerce.number().int().min(1).max(3650).default(30),
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_ENVIRONMENT: z.string().max(100).optional(),
+  KEEPALIVE_CRON_SECRET: optionalKeepaliveSecret,
   ENABLE_GENERIC_JOB_API: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
   APP_URL: z.string().url().default("http://localhost:3000"),
   /** Comma-separated allowlist, e.g. https://rontgenai.dev,https://www.rontgenai.dev */
@@ -94,6 +101,7 @@ function loadEnv(): Env {
     ARTIFACT_RETENTION_DAYS: process.env.ARTIFACT_RETENTION_DAYS,
     SENTRY_DSN: process.env.SENTRY_DSN,
     SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT,
+    KEEPALIVE_CRON_SECRET: process.env.KEEPALIVE_CRON_SECRET,
     ENABLE_GENERIC_JOB_API: process.env.ENABLE_GENERIC_JOB_API,
     APP_URL: process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL,
     CORS_ORIGINS: process.env.CORS_ORIGINS ?? process.env.NEXT_PUBLIC_APP_URL,
