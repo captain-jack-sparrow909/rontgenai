@@ -3,35 +3,19 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isProtectedRoute = createRouteMatcher(["/app(.*)"]);
 
 /**
- * Keep Clerk's frontend API proxy enabled for deployed hosts, while local
- * development talks to Clerk directly. Proxying a refresh handshake through
- * localhost makes Clerk attribute it to localhost and reject the host.
+ * Clerk's production publishable key points at the verified
+ * clerk.rontgenai.dev CNAME, so browser handshakes must go there directly.
+ * Enabling frontendApiProxy would instead derive /__clerk from the request
+ * host (www.rontgenai.dev), which Clerk rejects unless that exact proxy URL is
+ * separately registered in the Clerk Dashboard.
  */
-export default clerkMiddleware(
-  async (auth, request) => {
-    if (isProtectedRoute(request)) await auth.protect();
-  },
-  {
-    frontendApiProxy: {
-      enabled: (url) => {
-        const hostname = url.hostname.toLowerCase();
-        const isLocalhost =
-          hostname === "localhost" ||
-          hostname.endsWith(".localhost") ||
-          hostname === "127.0.0.1" ||
-          hostname === "0.0.0.0" ||
-          hostname === "[::1]" ||
-          hostname === "::1";
-        return !isLocalhost;
-      },
-    },
-  },
-);
+export default clerkMiddleware(async (auth, request) => {
+  if (isProtectedRoute(request)) await auth.protect();
+});
 
 export const config = {
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
-    "/__clerk/(.*)",
   ],
 };
