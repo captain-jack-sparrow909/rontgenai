@@ -1,141 +1,198 @@
 # Röntgen AI
 
-**See through your systems.** Multi-product AI suite for engineers — architecture, code, data, and production reliability.
+> **See through your systems.** An AI engineering suite for understanding architecture, code, data, delivery pipelines, and production incidents.
 
-| Domain | [rontgenai.dev](https://rontgenai.dev) |
-|--------|----------------------------------------|
+<p align="center">
+  <a href="https://rontgenai.dev">
+    <img src="./docs/assets/rontgenai-hero.jpg" alt="Röntgen AI engineering intelligence suite" width="100%" />
+  </a>
+</p>
 
-## Products
+<p align="center">
+  <a href="https://rontgenai.dev"><strong>Live product</strong></a>
+  ·
+  <a href="#architecture"><strong>Architecture</strong></a>
+  ·
+  <a href="#quick-start"><strong>Run locally</strong></a>
+  ·
+  <a href="./docs/PRODUCTION-HARDENING.md"><strong>Production model</strong></a>
+</p>
 
-| Product | Status | Description |
-|---------|--------|-------------|
-| **Blueprint** | v1 | Architecture diagram review |
-| **Pulse** | v1 | Chat with spreadsheets & SQL |
-| **Atlas** | v1 | GitHub repo explainer |
-| **Sentinel** | v1 | AI PR reviewer on GitHub |
-| **Forge** | v1 | Issue → plan → PR |
-| **Radar** | v1 | Production incident RCA |
-| **Relay** | v1 | CI pipeline optimization |
-| Orbit, Aegis, Echo, Arena | Coming soon | Placeholders + waitlist |
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&amp;logo=nextdotjs" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&amp;logo=typescript&amp;logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Fastify-API-202020?style=flat-square&amp;logo=fastify&amp;logoColor=white" alt="Fastify API" />
+  <img src="https://img.shields.io/badge/Supabase-Postgres-3FCF8E?style=flat-square&amp;logo=supabase&amp;logoColor=white" alt="Supabase Postgres" />
+  <img src="https://img.shields.io/badge/DeepSeek-AI-4D6BFE?style=flat-square" alt="DeepSeek AI" />
+</p>
 
-## Repo strategy (separate services)
+## Röntgen in 30 seconds
 
-| Repo / folder | Role | Stack | Deploy |
-|---------------|------|-------|--------|
-| **`web/`** (this app) | Marketing + app shell | Next.js, Tailwind, shadcn, Clerk, TanStack, Framer Motion | Vercel |
-| **`api-gateway/`** | Auth, rate limits, routing, webhooks | Fastify + TypeScript | Render web service |
-| **`api-gateway/src/worker.ts`** | Durable product jobs and retention | Node + Supabase leases + DeepSeek | Render background worker |
-| **`supabase/`** | Shared Postgres migrations | Supabase | Supabase |
+Engineering teams rarely lack data; they lack a fast way to turn architecture diagrams, repositories, pull requests, CI runs, and incident evidence into decisions.
 
-The API and worker share one package so processors and typed payloads cannot drift.
+Röntgen AI provides focused analysis tools over one shared platform:
 
-## Phase status
+- **Actionable output, not generic chat** — every product returns a structured review, diagnosis, plan, or prioritized set of fixes.
+- **Durable AI work** — long-running analysis uses persisted jobs, leases, retries, idempotency, and a separate worker rather than holding an HTTP request open.
+- **Production-minded boundaries** — authentication, metering, storage, billing, analytics, and model access sit behind explicit provider interfaces.
 
-### Phase 0 — complete
+## Product tour
 
-- [x] Next.js app + landing + app shell
-- [x] Clerk auth (login working)
-- [x] Platform port stubs, pricing, product names
-- [x] Privacy/Terms drafts, Sentry init, secret-safe gitignore
-- [x] Waitlist UI → API persistence
-- [ ] Optional: Clerk **Email** DNS for branded auth mail
-- [ ] Optional: Vercel production deploy of `web`
+<p align="center">
+  <a href="https://rontgenai.dev/#products">
+    <img src="./docs/assets/rontgenai-products.jpg" alt="Röntgen AI product suite showing Blueprint, Pulse, and Atlas" width="100%" />
+  </a>
+</p>
 
-### Phase 1 — complete
+| Product | What it turns into an engineering decision |
+|---|---|
+| **Blueprint** | Architecture diagrams → bottlenecks, failure risks, and improvement paths |
+| **Pulse** | Spreadsheets and SQL → answers with the query behind each result |
+| **Atlas** | GitHub repositories → codebase maps, architecture context, and explainable answers |
+| **Sentinel** | Pull requests → bug, security, and regression findings |
+| **Forge** | Issues → implementation plans and reviewable pull requests |
+| **Radar** | Logs, metrics, and traces → root-cause analysis and remediation steps |
+| **Relay** | CI workflow evidence → critical paths, cache misses, flaky tests, and prioritized fixes |
 
-- [x] `api-gateway` (Fastify): me, usage, waitlist, jobs, Paddle
-- [x] Supabase schema applied
-- [x] Waitlist + profile/usage sync
-- [x] Paddle.js checkout overlay + monthly/yearly
-- [x] PostHog project key + identify
-- [x] Settings shows synced profile
+Orbit, Aegis, Echo, and Arena remain planned products and are exposed through the waitlist rather than represented as shipped functionality.
 
-See `docs/PRODUCTION-HARDENING.md` for the current execution and operations model.
+## Architecture
+
+```mermaid
+flowchart LR
+    User["Engineer"] --> Web["Next.js 16 web app"]
+    Web --> Clerk["Clerk identity"]
+    Web --> API["Fastify API gateway"]
+
+    API --> Jobs[("Supabase job queue")]
+    API --> Data[("Postgres + RLS")]
+    API --> R2["Cloudflare R2"]
+
+    Worker["Durable Node worker"] --> Jobs
+    Worker --> DeepSeek["DeepSeek models"]
+    Worker --> Data
+
+    API --> Paddle["Paddle billing"]
+    Web --> Observability["PostHog + Sentry"]
+```
+
+The API gateway and worker intentionally share one TypeScript package. Product processors, validation schemas, and typed job payloads therefore evolve together instead of drifting across separate services.
+
+### Request and job lifecycle
+
+```text
+authenticate → authorize → meter → validate input → persist job → acquire lease
+      → run bounded AI analysis → validate result → persist output → report status
+```
+
+The worker model supports recovery after interruption, bounded retries, stale-lease reclamation, retention, and observable failure states. See [`docs/PRODUCTION-HARDENING.md`](./docs/PRODUCTION-HARDENING.md) for the operational details.
+
+## What this repository demonstrates
+
+| Concern | Implementation evidence |
+|---|---|
+| AI application design | Product-specific processors and validated model outputs instead of one general-purpose prompt |
+| Asynchronous reliability | Durable jobs, worker leases, retry limits, recovery paths, and retention policies |
+| Security boundaries | Clerk identity, server-side authorization, scoped uploads, rate limiting, and webhook verification |
+| SaaS foundations | Usage metering, plan enforcement, waitlist persistence, Paddle checkout, and organization-aware usage |
+| Operability | Health routes, Sentry integration, PostHog identity, structured monitoring, and deployment smoke tests |
+| Quality | Unit-tested analysis paths plus web linting, type checks, builds, and Playwright release smoke coverage |
+
+## Repository map
+
+| Path | Responsibility | Runtime |
+|---|---|---|
+| [`web/`](./web) | Marketing site, authenticated product UI, query state, and provider adapters | Next.js, React, Tailwind, Clerk, TanStack Query |
+| [`api-gateway/`](./api-gateway) | Authentication, metering, webhooks, product routes, and AI processors | Fastify, TypeScript, Node.js |
+| [`api-gateway/src/worker.ts`](./api-gateway/src/worker.ts) | Durable analysis execution, retries, leases, and retention | Node.js, Supabase, DeepSeek |
+| [`supabase/`](./supabase) | Shared schema, indexes, usage records, and job persistence | PostgreSQL, Row Level Security |
+| [`docs/`](./docs) | Architecture decisions, phase notes, deployment, and production hardening | Markdown |
+
+## Quick start
+
+### Requirements
+
+- Node.js 20 or newer
+- npm
+- Clerk credentials for authentication flows
+- Supabase and DeepSeek credentials for persisted AI analysis
+
+The public landing page and application shell can still be explored without every provider configured.
+
+```bash
+git clone https://github.com/captain-jack-sparrow909/rontgenai.git
+cd rontgenai
+
+cp web/.env.example web/.env.local
+cp api-gateway/.env.example api-gateway/.env
+
+npm --prefix web install
+npm --prefix api-gateway install
+
+npm run dev:web
+```
+
+In separate terminals, start the API and durable worker:
+
+```bash
+npm run dev:api
+npm run dev:worker
+```
+
+The web application runs at [`http://localhost:3000`](http://localhost:3000). Local development uses inline execution by default; set `JOB_EXECUTION_MODE=worker` to exercise the production-style job lifecycle.
+
+## Verification
+
+```bash
+npm run typecheck:api
+npm run test:api
+npm run lint:web
+npm run build
+```
+
+The web workspace also contains a Playwright release smoke suite:
+
+```bash
+npm --prefix web run test:e2e
+```
 
 ## Deployment
 
-Production targets: **Vercel** (web) + **Render** (api-gateway).
+The production topology targets:
 
-See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for:
+- **Vercel** for the Next.js web application
+- **Render** for the Fastify API and background worker
+- **Supabase** for Postgres-backed state and durable job leases
+- **Cloudflare R2** for object storage
 
-- Render service settings + `api.rontgenai.dev`
-- Vercel root directory `web` + `rontgenai.dev`
-- Production env vars and smoke tests
+Deployment configuration lives in [`web/vercel.json`](./web/vercel.json), [`render.yaml`](./render.yaml), and the production environment examples. Follow [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) for service settings, environment variables, DNS, migrations, and smoke tests.
 
-Config: `web/vercel.json`, `render.yaml`, `*.env.production.example`.
+## Platform boundaries
 
-## Quick start (`web`)
+Callers depend on ports under [`web/src/platform/`](./web/src/platform):
 
+| Port | Current provider |
+|---|---|
+| `LLMProvider` | DeepSeek |
+| `ObjectStore` | Cloudflare R2 |
+| `BillingProvider` | Paddle |
+| `EmailProvider` | Spacemail |
+| `CacheStore` | Upstash Redis |
+| `AnalyticsProvider` | PostHog |
 
-```bash
-cd web
-cp .env.example .env.local
-# Fill NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY + CLERK_SECRET_KEY when ready
+These boundaries keep product code independent from vendor-specific SDK details and make infrastructure changes deliberate.
 
-npm install --cache ../.npm-cache   # if global npm cache has permission issues
-npm run dev
-```
+## Documentation
 
-Open [http://localhost:3000](http://localhost:3000).
+- [`docs/DECISIONS.md`](./docs/DECISIONS.md) — product and technical decisions
+- [`docs/PRODUCTION-HARDENING.md`](./docs/PRODUCTION-HARDENING.md) — job execution, resilience, security, and operations
+- [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — deployment and smoke-test guide
+- [`docs/ENGINEERING-INTELLIGENCE-EXPANSION.md`](./docs/ENGINEERING-INTELLIGENCE-EXPANSION.md) — product expansion design
+- [`project-scope.md`](./project-scope.md) — original product brief
 
-Run the API in another terminal with `npm run dev:api`. Local development uses
-inline execution by default. Set `JOB_EXECUTION_MODE=worker` and run
-`npm run dev:worker` to exercise production-style durable jobs.
+---
 
-### Clerk setup
-
-Clerk app id: `app_3GOj4jk3LR4HYEtMof2YIE8643P`
-
-```bash
-npm install -g clerk
-clerk auth login
-cd web && clerk init --app app_3GOj4jk3LR4HYEtMof2YIE8643P
-clerk doctor
-```
-
-Without keys, the landing and app shell still render; sign-in shows a setup message.
-
-## Pricing (launch)
-
-| Plan | Price | Notes |
-|------|-------|--------|
-| Free | $0 | Sample quotas on Blueprint, Pulse, Atlas, Radar |
-| Pro | $29/mo ($290/yr) | Full suite + Sentinel (1 repo) + Forge |
-| Team | $99/mo ($990/yr) | Clerk Organizations, 5 seats, higher limits |
-
-**Orgs strategy:** Free/Pro = personal accounts. Team = Clerk Organization for seats, shared usage, and GitHub installs.
-
-## Platform abstractions
-
-Callers depend on ports under `web/src/platform/`:
-
-- `LLMProvider` → DeepSeek
-- `ObjectStore` → Cloudflare R2
-- `BillingProvider` → Paddle → Stripe later
-- `EmailProvider` → Spacemail
-- `CacheStore` → Upstash Redis
-- `AnalyticsProvider` → PostHog
-
-## Email
-
-| Address | Use |
-|---------|-----|
-| jabir@rontgenai.dev | Founder (not automated) |
-| hello@rontgenai.dev | Marketing / waitlist |
-| support@rontgenai.dev | Support |
-
-## Implementation order
-
-1. **Phase 0** — Foundation (this)
-2. **Phase 1** — API gateway, metering, Paddle, jobs
-3. **Phase 2** — Blueprint (first full product)
-4. Atlas → Pulse → Radar
-5. Sentinel → Forge (GitHub App)
-6. Launch polish
-
-## Docs in this workspace
-
-- `project-scope.md` — original product brief
-- `clerk-prompt.md` / `paddle-prompt.md` — vendor agent prompts
-- `supabase/migrations/` — database schema
-- `docs/DECISIONS.md` — locked product/tech decisions
+<p align="center">
+  <strong>Röntgen AI</strong><br />
+  See through your systems.
+</p>
